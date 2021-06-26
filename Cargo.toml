@@ -11,3 +11,6 @@ egui = "0.13"
 glfw = "0.41"
 gl = "0.14"
 nalgebra-glm = "0.13"
+
+[[example]]
+name = "simple_gui"
