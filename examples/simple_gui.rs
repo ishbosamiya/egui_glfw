@@ -46,7 +46,7 @@ fn main() {
         glfw.poll_events();
 
         glfw::flush_messages(&events).for_each(|(_, event)| {
-            egui.handle_event(&event);
+            egui.handle_event(&event, &window);
         });
 
         unsafe {

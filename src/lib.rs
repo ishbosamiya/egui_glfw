@@ -44,8 +44,8 @@ impl EguiBackend {
         });
     }
 
-    pub fn handle_event(&mut self, event: &glfw::WindowEvent) {
-        self.input.handle_event(event);
+    pub fn handle_event(&mut self, event: &glfw::WindowEvent, window: &glfw::Window) {
+        self.input.handle_event(event, window);
     }
 }
 
