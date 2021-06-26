@@ -26,12 +26,18 @@ impl EguiBackend {
         self.egui_ctx.begin_frame(raw_input);
     }
 
-    pub fn end_frame(&self) -> Output {
+    pub fn end_frame(&self) -> (Output, Vec<ClippedMesh>) {
         let (output, shapes) = self.egui_ctx.end_frame();
 
-        let _meshes = self.egui_ctx.tessellate(shapes);
+        let meshes = self.egui_ctx.tessellate(shapes);
 
-        return output;
+        return (output, meshes);
+    }
+
+    pub fn draw_gui(meshes: &[ClippedMesh], draw_data: &mut ClippedMeshDrawData) {
+        meshes.iter().for_each(|mesh| {
+            mesh.draw(draw_data).unwrap();
+        });
     }
 }
 
