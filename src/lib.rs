@@ -1,5 +1,6 @@
 pub mod drawable;
 pub mod gpu_immediate;
+pub mod input;
 pub mod shader;
 pub mod util;
 
@@ -7,23 +8,26 @@ use gl;
 
 use drawable::Drawable;
 use gpu_immediate::{GPUImmediate, GPUVertCompType, GPUVertFetchMode};
+use input::Input;
 use shader::Shader;
 
 use egui::{ClippedMesh, Output};
 
 pub struct EguiBackend {
     egui_ctx: egui::CtxRef,
+    input: Input,
 }
 
 impl EguiBackend {
     pub fn new() -> Self {
         return Self {
             egui_ctx: Default::default(),
+            input: Default::default(),
         };
     }
 
-    pub fn begin_frame(&mut self, raw_input: egui::RawInput) {
-        self.egui_ctx.begin_frame(raw_input);
+    pub fn begin_frame(&mut self) {
+        self.egui_ctx.begin_frame(self.input.take());
     }
 
     pub fn end_frame(&self) -> (Output, Vec<ClippedMesh>) {
@@ -38,6 +42,10 @@ impl EguiBackend {
         meshes.iter().for_each(|mesh| {
             mesh.draw(draw_data).unwrap();
         });
+    }
+
+    pub fn handle_event(&mut self, event: &glfw::WindowEvent) {
+        self.input.handle_event(event);
     }
 }
 

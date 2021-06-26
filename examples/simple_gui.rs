@@ -15,7 +15,7 @@ fn main() {
     glfw.window_hint(glfw::WindowHint::Samples(Some(16)));
     #[cfg(target_os = "macos")]
     glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-    let (mut window, _events) = glfw
+    let (mut window, events) = glfw
         .create_window(1280, 720, "Simple GUI", glfw::WindowMode::Windowed)
         .expect("Failed to create glfw window");
 
@@ -40,10 +40,15 @@ fn main() {
         gl::Enable(gl::MULTISAMPLE);
     }
 
-    let _egui = EguiBackend::new();
+    let mut egui = EguiBackend::new();
 
     while !window.should_close() {
         glfw.poll_events();
+
+        glfw::flush_messages(&events).for_each(|(_, event)| {
+            egui.handle_event(&event);
+        });
+
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
