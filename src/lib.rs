@@ -1,3 +1,7 @@
+pub mod gpu_immediate;
+pub mod shader;
+pub mod util;
+
 use egui::Output;
 
 pub struct EguiBackend {
