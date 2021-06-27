@@ -156,6 +156,17 @@ impl Input {
                     None => None,
                 }
             }
+            glfw::WindowEvent::Scroll(x, y) => {
+                self.raw_input.scroll_delta = egui::vec2(*x as _, *y as _);
+                None
+            }
+            glfw::WindowEvent::FramebufferSize(width, height) => {
+                unsafe {
+                    gl::Viewport(0, 0, *width, *height);
+                }
+                self.set_screen_rect_from_size(egui::vec2(*width as _, *height as _));
+                None
+            }
             _ => todo!("handle the event {:?}", event),
         };
         if let Some(raw_event) = raw_event {
@@ -163,13 +174,16 @@ impl Input {
         }
     }
 
+    fn set_screen_rect_from_size(&mut self, screen_size: egui::Vec2) {
+        // TODO(ish): will need to divide with pixels per point most probably
+        self.raw_input.screen_rect =
+            Some(egui::Rect::from_min_size(Default::default(), screen_size));
+    }
+
     pub fn set_screen_rect(&mut self, window: &glfw::Window) {
         let screen_size = window.get_size();
-        // TODO(ish): will need to divide with pixels per point most probably
-        self.raw_input.screen_rect = Some(egui::Rect::from_min_size(
-            Default::default(),
-            egui::vec2(screen_size.0 as f32, screen_size.1 as f32),
-        ));
+        let screen_size = egui::vec2(screen_size.0 as _, screen_size.1 as _);
+        self.set_screen_rect_from_size(screen_size);
     }
 
     pub fn set_modifiers(&mut self, window: &glfw::Window) {
