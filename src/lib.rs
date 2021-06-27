@@ -47,6 +47,10 @@ impl EguiBackend {
     pub fn handle_event(&mut self, event: &glfw::WindowEvent, window: &glfw::Window) {
         self.input.handle_event(event, window);
     }
+
+    pub fn get_egui_ctx(&self) -> &egui::CtxRef {
+        return &self.egui_ctx;
+    }
 }
 
 pub struct ClippedMeshDrawData<'a> {
@@ -75,12 +79,12 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
             2,
             GPUVertFetchMode::Float,
         );
-        let uv_attr = format.add_attribute(
-            "in_uv\0".to_string(),
-            GPUVertCompType::F32,
-            2,
-            GPUVertFetchMode::Float,
-        );
+        // let uv_attr = format.add_attribute(
+        //     "in_uv\0".to_string(),
+        //     GPUVertCompType::F32,
+        //     2,
+        //     GPUVertFetchMode::Float,
+        // );
         let color_attr = format.add_attribute(
             "in_color\0".to_string(),
             GPUVertCompType::F32,
@@ -96,9 +100,12 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
 
         // Need to turn off backface culling because egui doesn't use proper winding order
         let cull_on;
+        let depth_on;
         unsafe {
             cull_on = gl::IsEnabled(gl::CULL_FACE) == gl::TRUE;
+            depth_on = gl::IsEnabled(gl::DEPTH_TEST) == gl::TRUE;
             gl::Disable(gl::CULL_FACE);
+            gl::Disable(gl::DEPTH_TEST);
         }
 
         imm.begin(gpu_immediate::GPUPrimType::Tris, mesh.indices.len(), shader);
@@ -106,7 +113,7 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
         mesh.indices.iter().for_each(|index| {
             let vert = &mesh.vertices[*index as usize];
 
-            imm.attr_2f(uv_attr, vert.uv.x, vert.uv.y);
+            // imm.attr_2f(uv_attr, vert.uv.x, vert.uv.y);
             imm.attr_4f(
                 color_attr,
                 vert.color.r().into(),
@@ -122,6 +129,11 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
         if cull_on {
             unsafe {
                 gl::Enable(gl::CULL_FACE);
+            }
+        }
+        if depth_on {
+            unsafe {
+                gl::Enable(gl::DEPTH_TEST);
             }
         }
 
