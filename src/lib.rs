@@ -94,21 +94,32 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
             GPUVertFetchMode::Float,
         );
 
-        let _rect = &self.0;
+        let rect = &self.0;
         let mesh = &self.1;
 
-        // TODO(ish): add the scissor stuff
         // TODO(ish): handle textures
 
         // Need to turn off backface culling because egui doesn't use proper winding order
         let cull_on;
         let depth_on;
+        let scissor_not_on;
         unsafe {
             cull_on = gl::IsEnabled(gl::CULL_FACE) == gl::TRUE;
             depth_on = gl::IsEnabled(gl::DEPTH_TEST) == gl::TRUE;
+            scissor_not_on = gl::IsEnabled(gl::SCISSOR_TEST) == gl::TRUE;
             gl::Disable(gl::CULL_FACE);
             gl::Disable(gl::DEPTH_TEST);
+            gl::Enable(gl::SCISSOR_TEST);
         }
+
+        // scissor viewport since these are clipped meshes
+        let scissor = (
+            rect.left_bottom().x as _,
+            (rect.left_bottom().y - rect.height()) as _,
+            rect.width() as _,
+            rect.height() as _,
+        );
+        unsafe { gl::Scissor(scissor.0, scissor.1, scissor.2, scissor.3) }
 
         imm.begin(gpu_immediate::GPUPrimType::Tris, mesh.indices.len(), shader);
 
@@ -136,6 +147,11 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
         if depth_on {
             unsafe {
                 gl::Enable(gl::DEPTH_TEST);
+            }
+        }
+        if scissor_not_on {
+            unsafe {
+                gl::Disable(gl::SCISSOR_TEST);
             }
         }
 
