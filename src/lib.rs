@@ -2,12 +2,16 @@ pub mod drawable;
 pub mod gpu_immediate;
 pub mod input;
 pub mod shader;
+pub mod texture;
 pub mod util;
+
+use std::usize;
 
 use drawable::Drawable;
 use gpu_immediate::{GPUImmediate, GPUVertCompType, GPUVertFetchMode};
 use input::Input;
 use shader::Shader;
+use texture::Texture;
 
 use egui::{ClippedMesh, Output};
 use gl;
@@ -16,33 +20,75 @@ use nalgebra_glm as glm;
 pub struct EguiBackend {
     egui_ctx: egui::CtxRef,
     input: Input,
+    imm: GPUImmediate,
+    texture: Option<Texture>,
+    shader: Shader,
 }
 
 impl EguiBackend {
     pub fn new(window: &glfw::Window) -> Self {
         let mut input = Input::default();
         input.set_screen_rect(window);
+
+        let shader = Shader::new(
+            std::path::Path::new("shaders/egui_shader.vert"),
+            std::path::Path::new("shaders/egui_shader.frag"),
+        )
+        .unwrap();
+
+        println!(
+            "egui: uniforms: {:?} attributes: {:?}",
+            shader.get_uniforms(),
+            shader.get_attributes(),
+        );
+
         return Self {
             egui_ctx: Default::default(),
+            imm: GPUImmediate::new(),
             input,
+            texture: None,
+            shader,
         };
     }
 
     pub fn begin_frame(&mut self) {
         self.egui_ctx.begin_frame(self.input.take());
+        if let None = self.texture {
+            self.texture = Some(Texture::from_egui(&self.egui_ctx.texture()));
+        }
     }
 
-    pub fn end_frame(&self) -> (Output, Vec<ClippedMesh>) {
+    pub fn end_frame(&mut self, screen_size: glm::Vec2) -> Output {
         let (output, shapes) = self.egui_ctx.end_frame();
 
         let meshes = self.egui_ctx.tessellate(shapes);
 
-        return (output, meshes);
+        self.shader.use_shader();
+        self.shader.set_mat4(
+            "projection\0",
+            &glm::ortho(
+                0.0,
+                screen_size[0] as _,
+                0.0,
+                screen_size[1] as _,
+                0.1,
+                1000.0,
+            ),
+        );
+        self.draw_gui(&meshes, screen_size);
+
+        return output;
     }
 
-    pub fn draw_gui(meshes: &[ClippedMesh], draw_data: &mut ClippedMeshDrawData) {
+    fn draw_gui(&mut self, meshes: &[ClippedMesh], screen_size: glm::Vec2) {
+        self.shader.set_int("egui_texture\0", 31);
+        let texture = self.texture.as_mut().unwrap();
+        texture.update_from_egui(&self.egui_ctx.texture());
+        texture.activate(31);
+
+        let mut draw_data = ClippedMeshDrawData::new(&mut self.imm, &mut self.shader, screen_size);
         meshes.iter().for_each(|mesh| {
-            mesh.draw(draw_data).unwrap();
+            mesh.draw(&mut draw_data).unwrap();
         });
     }
 
@@ -55,7 +101,7 @@ impl EguiBackend {
     }
 }
 
-pub struct ClippedMeshDrawData<'a> {
+struct ClippedMeshDrawData<'a> {
     imm: &'a mut GPUImmediate,
 
     /// needs a 2d shader with position, uv, and color defined per vertex
@@ -89,12 +135,12 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
             2,
             GPUVertFetchMode::Float,
         );
-        // let uv_attr = format.add_attribute(
-        //     "in_uv\0".to_string(),
-        //     GPUVertCompType::F32,
-        //     2,
-        //     GPUVertFetchMode::Float,
-        // );
+        let uv_attr = format.add_attribute(
+            "in_uv\0".to_string(),
+            GPUVertCompType::F32,
+            2,
+            GPUVertFetchMode::Float,
+        );
         let color_attr = format.add_attribute(
             "in_color\0".to_string(),
             GPUVertCompType::F32,
@@ -104,8 +150,6 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
 
         let rect = &self.0;
         let mesh = &self.1;
-
-        // TODO(ish): handle textures
 
         // Need to turn off backface culling because egui doesn't use proper winding order
         let cull_on;
@@ -134,7 +178,7 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
         mesh.indices.iter().for_each(|index| {
             let vert = &mesh.vertices[*index as usize];
 
-            // imm.attr_2f(uv_attr, vert.uv.x, vert.uv.y);
+            imm.attr_2f(uv_attr, vert.uv.x, vert.uv.y);
             imm.attr_4f(
                 color_attr,
                 vert.color.r().into(),

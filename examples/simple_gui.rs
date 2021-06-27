@@ -3,7 +3,7 @@ use gl;
 use glfw::{self, Context};
 use nalgebra_glm as glm;
 
-use egui_glfw::{gpu_immediate::GPUImmediate, shader::Shader, ClippedMeshDrawData, EguiBackend};
+use egui_glfw::EguiBackend;
 
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -41,20 +41,6 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
         gl::Enable(gl::MULTISAMPLE);
     }
-
-    let mut imm = GPUImmediate::new();
-
-    let mut egui_shader = Shader::new(
-        std::path::Path::new("shaders/egui_shader.vert"),
-        std::path::Path::new("shaders/egui_shader.frag"),
-    )
-    .unwrap();
-
-    println!(
-        "egui: uniforms: {:?} attributes: {:?}",
-        egui_shader.get_uniforms(),
-        egui_shader.get_attributes(),
-    );
 
     let mut egui = EguiBackend::new(&window);
 
@@ -98,21 +84,8 @@ fn main() {
                 });
         });
 
-        let (_output, meshes) = egui.end_frame();
-
         let (width, height) = window.get_size();
-        egui_shader.use_shader();
-        egui_shader.set_mat4(
-            "projection\0",
-            &glm::ortho(0.0, width as _, 0.0, height as _, 0.1, 1000.0),
-        );
-        let mut clipped_mesh_draw_data = ClippedMeshDrawData::new(
-            &mut imm,
-            &mut egui_shader,
-            glm::vec2(width as _, height as _),
-        );
-
-        EguiBackend::draw_gui(&meshes, &mut clipped_mesh_draw_data);
+        let _output = egui.end_frame(glm::vec2(width as _, height as _));
 
         window.swap_buffers();
     }
