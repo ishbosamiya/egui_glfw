@@ -156,15 +156,22 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
         let depth_on;
         let scissor_not_on;
         let blend_not_on;
+        let srgb_not_on;
         unsafe {
             cull_on = gl::IsEnabled(gl::CULL_FACE) == gl::TRUE;
             depth_on = gl::IsEnabled(gl::DEPTH_TEST) == gl::TRUE;
             scissor_not_on = gl::IsEnabled(gl::SCISSOR_TEST) == gl::FALSE;
             blend_not_on = gl::IsEnabled(gl::BLEND) == gl::FALSE;
+            srgb_not_on = gl::IsEnabled(gl::FRAMEBUFFER_SRGB) == gl::FALSE;
             gl::Disable(gl::CULL_FACE);
             gl::Disable(gl::DEPTH_TEST);
             gl::Enable(gl::SCISSOR_TEST);
             gl::Enable(gl::BLEND);
+            //Let OpenGL know we are dealing with SRGB colors so that it
+            //can do the blending correctly. Not setting the framebuffer
+            //leads to darkened, oversaturated colors.
+            gl::Enable(gl::FRAMEBUFFER_SRGB);
+            gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
         }
 
         // scissor viewport since these are clipped meshes
@@ -212,6 +219,11 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
         if blend_not_on {
             unsafe {
                 gl::Disable(gl::BLEND);
+            }
+        }
+        if srgb_not_on {
+            unsafe {
+                gl::Disable(gl::FRAMEBUFFER_SRGB);
             }
         }
 

@@ -40,6 +40,7 @@ fn main() {
         gl::Disable(gl::CULL_FACE);
         gl::Enable(gl::DEPTH_TEST);
         gl::Enable(gl::MULTISAMPLE);
+        gl::Enable(gl::FRAMEBUFFER_SRGB);
     }
 
     let mut egui = EguiBackend::new(&window);

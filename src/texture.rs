@@ -125,12 +125,12 @@ impl Texture {
             gl::TexParameteri(
                 gl::TEXTURE_2D,
                 gl::TEXTURE_WRAP_S,
-                gl::REPEAT.try_into().unwrap(),
+                gl::CLAMP_TO_EDGE.try_into().unwrap(),
             );
             gl::TexParameteri(
                 gl::TEXTURE_2D,
                 gl::TEXTURE_WRAP_T,
-                gl::REPEAT.try_into().unwrap(),
+                gl::CLAMP_TO_EDGE.try_into().unwrap(),
             );
 
             // filter method
