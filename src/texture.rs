@@ -7,7 +7,7 @@ pub struct Texture {
     version: u64,
     width: usize,
     height: usize,
-    pixels: Vec<u8>,
+    pixels: Vec<(u8, u8, u8, u8)>,
 
     gl_tex: GLuint,
 }
@@ -16,13 +16,18 @@ impl Texture {
     pub fn from_egui(tex: &egui::Texture) -> Self {
         let gl_tex = Self::gen_gl_texture();
         let res = Self {
-            version: 0,
+            version: tex.version,
             width: tex.size()[0],
             height: tex.size()[1],
-            pixels: tex.pixels.clone(),
-
+            pixels: tex
+                .pixels
+                .iter()
+                .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
+                .collect(),
             gl_tex,
         };
+
+        assert_eq!(res.pixels.len(), res.width * res.height);
 
         res.new_texture_to_gl();
 
@@ -37,7 +42,11 @@ impl Texture {
         self.version = tex.version;
         self.width = tex.width;
         self.height = tex.height;
-        self.pixels = tex.pixels.clone();
+        self.pixels = tex
+            .pixels
+            .iter()
+            .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
+            .collect();
 
         self.new_texture_to_gl();
     }
@@ -87,6 +96,7 @@ impl Texture {
     fn new_texture_to_gl(&self) {
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, self.gl_tex);
+
             gl::TexImage2D(
                 gl::TEXTURE_2D,
                 0,
