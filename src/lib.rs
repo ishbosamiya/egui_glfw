@@ -174,14 +174,27 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
             gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
         }
 
-        // scissor viewport since these are clipped meshes
-        let scissor = (
-            rect.left_bottom().x as _,
-            (rect.left_bottom().y - rect.height()) as _,
-            rect.width() as _,
-            rect.height() as _,
-        );
-        unsafe { gl::Scissor(scissor.0, scissor.1, scissor.2, scissor.3) }
+        //scissor viewport since these are clipped meshes
+        let clip_min_x = rect.min.x;
+        let clip_min_y = rect.min.y;
+        let clip_max_x = rect.max.x;
+        let clip_max_y = rect.max.y;
+        let clip_min_x = clip_min_x.clamp(0.0, screen_size[0]);
+        let clip_min_y = clip_min_y.clamp(0.0, screen_size[1]);
+        let clip_max_x = clip_max_x.clamp(clip_min_x, screen_size[0]);
+        let clip_max_y = clip_max_y.clamp(clip_min_y, screen_size[1]);
+        let clip_min_x = clip_min_x.round() as i32;
+        let clip_min_y = clip_min_y.round() as i32;
+        let clip_max_x = clip_max_x.round() as i32;
+        let clip_max_y = clip_max_y.round() as i32;
+        unsafe {
+            gl::Scissor(
+                clip_min_x,
+                screen_size[1] as i32 - clip_max_y,
+                clip_max_x - clip_min_x,
+                clip_max_y - clip_min_y,
+            );
+        }
 
         imm.begin(gpu_immediate::GPUPrimType::Tris, mesh.indices.len(), shader);
 
