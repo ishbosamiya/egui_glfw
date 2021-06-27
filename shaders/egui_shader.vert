@@ -1,6 +1,7 @@
 #version 330 core
 
 uniform mat4 projection;
+uniform vec2 screen_size;       // (width, height)
 
 in vec2 in_pos;
 // in vec2 in_uv;
@@ -23,6 +24,7 @@ vec4 linear_from_srgba(vec4 srgba) {
 
 void main()
 {
-  gl_Position = projection * vec4(in_pos, -10.0, 1.0);
+  vec2 pos = vec2(in_pos.x / screen_size.x, 1.0 - in_pos.y / screen_size.y) * screen_size;
+  gl_Position = projection * vec4(pos, -10.0, 1.0);
   finalColor = linear_from_srgba(in_color);
 }

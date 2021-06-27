@@ -4,14 +4,14 @@ pub mod input;
 pub mod shader;
 pub mod util;
 
-use gl;
-
 use drawable::Drawable;
 use gpu_immediate::{GPUImmediate, GPUVertCompType, GPUVertFetchMode};
 use input::Input;
 use shader::Shader;
 
 use egui::{ClippedMesh, Output};
+use gl;
+use nalgebra_glm as glm;
 
 pub struct EguiBackend {
     egui_ctx: egui::CtxRef,
@@ -60,11 +60,17 @@ pub struct ClippedMeshDrawData<'a> {
 
     /// needs a 2d shader with position, uv, and color defined per vertex
     shader: &'a Shader,
+
+    screen_size: glm::Vec2,
 }
 
 impl<'a> ClippedMeshDrawData<'a> {
-    pub fn new(imm: &'a mut GPUImmediate, shader: &'a Shader) -> Self {
-        return Self { imm, shader };
+    pub fn new(imm: &'a mut GPUImmediate, shader: &'a Shader, screen_size: glm::Vec2) -> Self {
+        return Self {
+            imm,
+            shader,
+            screen_size,
+        };
     }
 }
 
@@ -72,7 +78,9 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
     fn draw(&self, extra_data: &mut ClippedMeshDrawData) -> Result<(), ()> {
         let imm = &mut extra_data.imm;
         let shader = extra_data.shader;
+        let screen_size = extra_data.screen_size;
         shader.use_shader();
+        shader.set_vec2("screen_size\0", &screen_size);
 
         let format = imm.get_cleared_vertex_format();
         let pos_attr = format.add_attribute(

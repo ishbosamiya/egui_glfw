@@ -106,7 +106,11 @@ fn main() {
             "projection\0",
             &glm::ortho(0.0, width as _, 0.0, height as _, 0.1, 1000.0),
         );
-        let mut clipped_mesh_draw_data = ClippedMeshDrawData::new(&mut imm, &mut egui_shader);
+        let mut clipped_mesh_draw_data = ClippedMeshDrawData::new(
+            &mut imm,
+            &mut egui_shader,
+            glm::vec2(width as _, height as _),
+        );
 
         EguiBackend::draw_gui(&meshes, &mut clipped_mesh_draw_data);
 
