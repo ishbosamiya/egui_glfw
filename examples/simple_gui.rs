@@ -56,11 +56,16 @@ fn main() {
         egui_shader.get_attributes(),
     );
 
-    let mut egui = EguiBackend::new();
+    let mut egui = EguiBackend::new(&window);
 
     unsafe {
         gl::ClearColor(0.2, 0.2, 0.2, 1.0);
     }
+
+    println!(
+        "pixels_per_point: {}",
+        egui.get_egui_ctx().pixels_per_point()
+    );
 
     while !window.should_close() {
         glfw.poll_events();

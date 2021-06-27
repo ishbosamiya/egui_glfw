@@ -19,10 +19,12 @@ pub struct EguiBackend {
 }
 
 impl EguiBackend {
-    pub fn new() -> Self {
+    pub fn new(window: &glfw::Window) -> Self {
+        let mut input = Input::default();
+        input.set_screen_rect(window);
         return Self {
             egui_ctx: Default::default(),
-            input: Default::default(),
+            input,
         };
     }
 
