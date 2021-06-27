@@ -181,7 +181,7 @@ impl Input {
     }
 
     pub fn set_screen_rect(&mut self, window: &glfw::Window) {
-        let screen_size = window.get_size();
+        let screen_size = window.get_framebuffer_size();
         let screen_size = egui::vec2(screen_size.0 as _, screen_size.1 as _);
         self.set_screen_rect_from_size(screen_size);
     }

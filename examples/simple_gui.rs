@@ -85,7 +85,7 @@ fn main() {
                 });
         });
 
-        let (width, height) = window.get_size();
+        let (width, height) = window.get_framebuffer_size();
         let _output = egui.end_frame(glm::vec2(width as _, height as _));
 
         window.swap_buffers();
