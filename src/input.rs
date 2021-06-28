@@ -24,7 +24,7 @@ impl Input {
         match action {
             glfw::Action::Press => true,
             glfw::Action::Release => false,
-            _ => unreachable!(),
+            glfw::Action::Repeat => true,
         }
     }
 
