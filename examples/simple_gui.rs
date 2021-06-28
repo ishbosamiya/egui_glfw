@@ -54,6 +54,8 @@ fn main() {
         egui.get_egui_ctx().pixels_per_point()
     );
 
+    let mut inspection_window = true;
+
     while !window.should_close() {
         glfw.poll_events();
 
@@ -84,6 +86,13 @@ fn main() {
                         });
                 });
         });
+
+        egui::Window::new("window")
+            .open(&mut inspection_window)
+            .scroll(true)
+            .show(egui.get_egui_ctx(), |ui| {
+                egui.get_egui_ctx().inspection_ui(ui);
+            });
 
         let (width, height) = window.get_framebuffer_size();
         let _output = egui.end_frame(glm::vec2(width as _, height as _));
