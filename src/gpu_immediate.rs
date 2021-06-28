@@ -359,6 +359,8 @@ impl GPUImmediate {
     }
 
     pub fn begin(&mut self, prim_type: GPUPrimType, vertex_len: usize, shader: &Shader) {
+        assert_ne!(vertex_len, 0);
+
         if !self.vertex_format.packed {
             self.vertex_format.pack();
         }
@@ -436,6 +438,34 @@ impl GPUImmediate {
                     bytes_needed.try_into().unwrap(),
                     gl::MAP_WRITE_BIT | gl::MAP_UNSYNCHRONIZED_BIT | gl::MAP_FLUSH_EXPLICIT_BIT,
                 ) as *mut gl::types::GLubyte;
+            }
+        }
+
+        if self.buffer_data == std::ptr::null_mut() {
+            loop {
+                let error;
+                unsafe {
+                    error = gl::GetError();
+                }
+                if error == gl::NO_ERROR {
+                    break;
+                } else if error == gl::INVALID_ENUM {
+                    eprintln!("opengl error: gl::INVALID_ENUM");
+                } else if error == gl::INVALID_VALUE {
+                    eprintln!("opengl error: gl::INVALID_VALUE");
+                } else if error == gl::INVALID_OPERATION {
+                    eprintln!("opengl error: gl::INVALID_OPERATION");
+                } else if error == gl::INVALID_FRAMEBUFFER_OPERATION {
+                    eprintln!("opengl error: gl::INVALID_FRAMEBUFFER_OPERATION");
+                } else if error == gl::OUT_OF_MEMORY {
+                    eprintln!("opengl error: gl::OUT_OF_MEMORY");
+                } else if error == gl::STACK_UNDERFLOW {
+                    eprintln!("opengl error: gl::STACK_UNDERFLOW");
+                } else if error == gl::STACK_OVERFLOW {
+                    eprintln!("opengl error: gl::STACK_OVERFLOW");
+                } else {
+                    panic!("should have been one of the above opengl errors");
+                }
             }
         }
 
