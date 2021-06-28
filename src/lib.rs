@@ -87,9 +87,9 @@ impl EguiBackend {
         texture.activate(31);
 
         let mut draw_data = ClippedMeshDrawData::new(&mut self.imm, &mut self.shader, screen_size);
-        meshes.iter().for_each(|mesh| {
-            mesh.draw(&mut draw_data).unwrap();
-        });
+        meshes
+            .iter()
+            .for_each(|mesh| mesh.draw(&mut draw_data).unwrap_or(()));
     }
 
     pub fn handle_event(&mut self, event: &glfw::WindowEvent, window: &glfw::Window) {
@@ -122,6 +122,12 @@ impl<'a> ClippedMeshDrawData<'a> {
 
 impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
     fn draw(&self, extra_data: &mut ClippedMeshDrawData) -> Result<(), ()> {
+        let rect = &self.0;
+        let mesh = &self.1;
+        if mesh.indices.len() == 0 {
+            // TODO(ish): make this a proper error
+            return Err(()); // mesh is not a mesh, no indices
+        }
         let imm = &mut extra_data.imm;
         let shader = extra_data.shader;
         let screen_size = extra_data.screen_size;
@@ -147,9 +153,6 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
             4,
             GPUVertFetchMode::Float,
         );
-
-        let rect = &self.0;
-        let mesh = &self.1;
 
         // Need to turn off backface culling because egui doesn't use proper winding order
         let cull_on;
