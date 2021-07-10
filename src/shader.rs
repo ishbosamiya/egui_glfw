@@ -1,4 +1,3 @@
-use gl;
 use nalgebra_glm as glm;
 
 use std::convert::TryInto;
@@ -49,13 +48,11 @@ impl Shader {
 
         let mut vertex_code = String::new();
         let mut fragment_code = String::new();
-        match v_file.read_to_string(&mut vertex_code) {
-            Err(_) => return Err(ShaderError::Io),
-            Ok(_) => (),
+        if v_file.read_to_string(&mut vertex_code).is_err() {
+            return Err(ShaderError::Io);
         }
-        match f_file.read_to_string(&mut fragment_code) {
-            Err(_) => return Err(ShaderError::Io),
-            Ok(_) => (),
+        if f_file.read_to_string(&mut fragment_code).is_err() {
+            return Err(ShaderError::Io);
         }
 
         let vertex_code = std::ffi::CString::new(vertex_code).unwrap();
@@ -114,9 +111,9 @@ impl Shader {
             gl::DeleteShader(fragment_shader);
         }
 
-        return Ok(Shader {
+        Ok(Shader {
             program_id: shader_program,
-        });
+        })
     }
 
     pub fn use_shader(&self) {
@@ -226,7 +223,7 @@ impl Shader {
     }
 
     pub fn get_id(&self) -> gl::types::GLuint {
-        return self.program_id;
+        self.program_id
     }
 
     pub fn get_attributes(&self) -> Vec<String> {
@@ -260,7 +257,7 @@ impl Shader {
             attributes.push(name_string.into_string().unwrap());
         }
 
-        return attributes;
+        attributes
     }
 
     pub fn get_uniforms(&self) -> Vec<String> {
@@ -294,6 +291,6 @@ impl Shader {
             uniforms.push(name_string.into_string().unwrap());
         }
 
-        return uniforms;
+        uniforms
     }
 }

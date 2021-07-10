@@ -1,6 +1,5 @@
 use std::convert::TryInto;
 
-use egui;
 use gl::types::{GLuint, GLvoid};
 
 pub struct Texture {
@@ -31,7 +30,7 @@ impl Texture {
 
         res.new_texture_to_gl();
 
-        return res;
+        res
     }
 
     pub fn update_from_egui(&mut self, tex: &egui::Texture) {
@@ -146,6 +145,6 @@ impl Texture {
             );
         }
 
-        return gl_tex;
+        gl_tex
     }
 }

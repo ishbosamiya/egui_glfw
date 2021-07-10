@@ -1,7 +1,5 @@
 // Based on Blender's GPU Immediate work-alike system
 
-use gl;
-
 use std::convert::TryInto;
 
 use crate::shader::Shader;
@@ -90,10 +88,10 @@ struct GPUAttrBinding {
 
 impl GPUAttrBinding {
     fn new() -> Self {
-        return GPUAttrBinding {
+        GPUAttrBinding {
             loc_bits: 0,
             enabled_bits: 0,
-        };
+        }
     }
 
     fn clear(&mut self) {
@@ -110,9 +108,9 @@ impl GPUAttrBinding {
     }
 
     fn read_attr_location(&self, attr_index: usize) -> usize {
-        return ((self.loc_bits >> (4 * attr_index)) & 0xF)
+        ((self.loc_bits >> (4 * attr_index)) & 0xF)
             .try_into()
-            .unwrap();
+            .unwrap()
     }
 }
 
@@ -128,7 +126,7 @@ struct GPUVertAttr {
 
 impl GPUVertAttr {
     fn new() -> Self {
-        return GPUVertAttr {
+        GPUVertAttr {
             fetch_mode: GPUVertFetchMode::None,
             comp_type: GPUVertCompType::None,
             comp_len: 0,
@@ -136,7 +134,7 @@ impl GPUVertAttr {
             offset: 0,
             gl_comp_type: gl::NONE,
             name: String::new(),
-        };
+        }
     }
 
     fn comp_sz(&self, r#type: &GPUVertCompType) -> u8 {
@@ -155,21 +153,21 @@ impl GPUVertAttr {
 
     fn attr_sz(&self) -> u8 {
         if let GPUVertCompType::I10 = self.comp_type {
-            return 4; // always packed as 10_10_10_2
+            4 // always packed as 10_10_10_2
         } else {
-            return self.comp_len * self.comp_sz(&self.comp_type);
+            self.comp_len * self.comp_sz(&self.comp_type)
         }
     }
 
     fn attr_align(&self) -> usize {
         if let GPUVertCompType::I10 = self.comp_type {
-            return 4; // always packed as 10_10_10_2
+            4 // always packed as 10_10_10_2
         } else {
             let c = self.comp_sz(&self.comp_type);
             if self.comp_len == 3 && c < 2 {
-                return (4 * c).into(); // AMD HW can't fetch these well, so pad it out (other vendors too?)
+                (4 * c).into() // AMD HW can't fetch these well, so pad it out (other vendors too?)
             } else {
-                return c.into(); // most fetches are ok if components are naturally aligned
+                c.into() // most fetches are ok if components are naturally aligned
             }
         }
     }
@@ -185,20 +183,20 @@ pub struct GPUVertFormat {
 fn padding(offset: usize, alignment: usize) -> usize {
     let m = offset % alignment;
     if m == 0 {
-        return 0;
+        0
     } else {
-        return alignment - m;
+        alignment - m
     }
 }
 
 impl GPUVertFormat {
     fn new() -> Self {
-        return GPUVertFormat {
+        GPUVertFormat {
             stride: 0,
             packed: false,
 
             attrs: Vec::new(),
-        };
+        }
     }
 
     fn pack(&mut self) {
@@ -225,7 +223,7 @@ impl GPUVertFormat {
     }
 
     fn vertex_buffer_size(&self, vertex_len: usize) -> usize {
-        return self.stride as usize * vertex_len;
+        self.stride as usize * vertex_len
     }
 
     pub fn add_attribute(
@@ -250,8 +248,8 @@ impl GPUVertFormat {
         attr.fetch_mode = fetch_mode;
 
         self.attrs.push(attr);
-        return self.attrs.len() - 1;
 
+        self.attrs.len() - 1
         // TODO(ish): this is returning a value within self.attrs which doesn't have to correspond with the value in the vertex shader. Need to figure out what is happening
     }
 
@@ -307,6 +305,12 @@ fn gpu_vao_free(id: &gl::types::GLuint) {
     }
 }
 
+impl Default for GPUImmediate {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GPUImmediate {
     pub fn new() -> Self {
         let mut imm = GPUImmediate {
@@ -332,7 +336,7 @@ impl GPUImmediate {
 
         imm.init();
 
-        return imm;
+        imm
     }
 
     fn init(&mut self) {
@@ -613,7 +617,7 @@ impl GPUImmediate {
 
     pub fn get_cleared_vertex_format(&mut self) -> &mut GPUVertFormat {
         self.vertex_format.clear();
-        return &mut self.vertex_format;
+        &mut self.vertex_format
     }
 
     fn set_attr_value_bit(&mut self, attr_id: usize) {

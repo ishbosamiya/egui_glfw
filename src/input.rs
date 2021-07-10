@@ -7,16 +7,16 @@ pub struct Input {
 
 impl Default for Input {
     fn default() -> Self {
-        return Self {
+        Self {
             raw_input: Default::default(),
-        };
+        }
     }
 }
 
 impl Input {
     /// Refer to egui's RawInput for details on take
     pub fn take(&mut self) -> RawInput {
-        return self.raw_input.take();
+        self.raw_input.take()
     }
 
     #[inline]
@@ -147,14 +147,11 @@ impl Input {
                     Key::LeftAlt | Key::RightAlt => self.raw_input.modifiers.alt = pressed,
                     _ => (),
                 }
-                match Self::get_key(key) {
-                    Some(key) => Some(Event::Key {
-                        key,
-                        pressed,
-                        modifiers: Self::get_modifier(modifiers),
-                    }),
-                    None => None,
-                }
+                Self::get_key(key).map(|key| Event::Key {
+                    key,
+                    pressed,
+                    modifiers: Self::get_modifier(modifiers),
+                })
             }
             glfw::WindowEvent::Scroll(x, y) => {
                 self.raw_input.scroll_delta = egui::vec2(*x as _, *y as _);

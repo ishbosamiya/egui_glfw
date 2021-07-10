@@ -14,7 +14,6 @@ use shader::Shader;
 use texture::Texture;
 
 use egui::{ClippedMesh, Output};
-use gl;
 use nalgebra_glm as glm;
 
 pub struct EguiBackend {
@@ -42,18 +41,18 @@ impl EguiBackend {
             shader.get_attributes(),
         );
 
-        return Self {
+        Self {
             egui_ctx: Default::default(),
             imm: GPUImmediate::new(),
             input,
             texture: None,
             shader,
-        };
+        }
     }
 
     pub fn begin_frame(&mut self) {
         self.egui_ctx.begin_frame(self.input.take());
-        if let None = self.texture {
+        if self.texture.is_none() {
             self.texture = Some(Texture::from_egui(&self.egui_ctx.texture()));
         }
     }
@@ -77,7 +76,7 @@ impl EguiBackend {
         );
         self.draw_gui(&meshes, screen_size);
 
-        return output;
+        output
     }
 
     fn draw_gui(&mut self, meshes: &[ClippedMesh], screen_size: glm::Vec2) {
@@ -86,7 +85,7 @@ impl EguiBackend {
         texture.update_from_egui(&self.egui_ctx.texture());
         texture.activate(31);
 
-        let mut draw_data = ClippedMeshDrawData::new(&mut self.imm, &mut self.shader, screen_size);
+        let mut draw_data = ClippedMeshDrawData::new(&mut self.imm, &self.shader, screen_size);
         meshes
             .iter()
             .for_each(|mesh| mesh.draw(&mut draw_data).unwrap_or(()));
@@ -97,7 +96,7 @@ impl EguiBackend {
     }
 
     pub fn get_egui_ctx(&self) -> &egui::CtxRef {
-        return &self.egui_ctx;
+        &self.egui_ctx
     }
 }
 
@@ -112,11 +111,11 @@ struct ClippedMeshDrawData<'a> {
 
 impl<'a> ClippedMeshDrawData<'a> {
     pub fn new(imm: &'a mut GPUImmediate, shader: &'a Shader, screen_size: glm::Vec2) -> Self {
-        return Self {
+        Self {
             imm,
             shader,
             screen_size,
-        };
+        }
     }
 }
 
@@ -124,7 +123,7 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
     fn draw(&self, extra_data: &mut ClippedMeshDrawData) -> Result<(), ()> {
         let rect = &self.0;
         let mesh = &self.1;
-        if mesh.indices.len() == 0 {
+        if mesh.indices.is_empty() {
             // TODO(ish): make this a proper error
             return Err(()); // mesh is not a mesh, no indices
         }
@@ -243,6 +242,6 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
             }
         }
 
-        return Ok(());
+        Ok(())
     }
 }
