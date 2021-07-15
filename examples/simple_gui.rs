@@ -1,5 +1,3 @@
-use egui;
-use gl;
 use glfw::{self, Context};
 use nalgebra_glm as glm;
 
@@ -44,7 +42,7 @@ fn main() {
         gl::Enable(gl::FRAMEBUFFER_SRGB);
     }
 
-    let mut egui = EguiBackend::new(&window);
+    let mut egui = EguiBackend::new(&window, &mut glfw);
 
     unsafe {
         gl::ClearColor(0.1, 0.3, 0.2, 1.0);

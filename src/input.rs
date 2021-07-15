@@ -5,15 +5,15 @@ pub struct Input {
     raw_input: RawInput,
 }
 
-impl Default for Input {
-    fn default() -> Self {
-        Self {
-            raw_input: Default::default(),
-        }
-    }
-}
-
 impl Input {
+    pub fn new(pixels_per_point: f32) -> Self {
+        let raw_input = RawInput {
+            pixels_per_point: Some(pixels_per_point),
+            ..Default::default()
+        };
+        Self { raw_input }
+    }
+
     /// Refer to egui's RawInput for details on take
     pub fn take(&mut self) -> RawInput {
         self.raw_input.take()
