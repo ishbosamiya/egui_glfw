@@ -122,6 +122,16 @@ fn main() {
                             .collect::<Vec<_>>()
                     })
                 ));
+                ui.label(format!(
+                    "monitor positions: {:?}",
+                    glfw.with_connected_monitors(|_, monitors| {
+                        monitors
+                            .iter()
+                            .map(|monitor| monitor.get_pos())
+                            .collect::<Vec<_>>()
+                    })
+                ));
+                ui.label(format!("window position: {:?}", window.get_pos()));
             });
 
         egui::Window::new("window")
