@@ -15,6 +15,7 @@ fn main() {
     ));
     // if msaa is available, use it
     glfw.window_hint(glfw::WindowHint::Samples(Some(16)));
+    glfw.window_hint(glfw::WindowHint::ScaleToMonitor(true));
     #[cfg(target_os = "macos")]
     glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
     let (mut window, events) = glfw
@@ -60,6 +61,7 @@ fn main() {
         glfw.poll_events();
 
         glfw::flush_messages(&events).for_each(|(_, event)| {
+            println!("event: {:?}", event);
             egui.handle_event(&event, &window);
         });
 
@@ -69,23 +71,60 @@ fn main() {
 
         egui.begin_frame();
 
-        egui::SidePanel::left("my_side_panel").show(egui.get_egui_ctx(), |ui| {
-            ui.heading("Hello World!");
-            if ui.button("Quit").clicked() {
-                window.set_should_close(true);
-            }
+        egui::SidePanel::left("my_side_panel")
+            .resizable(true)
+            .show(egui.get_egui_ctx(), |ui| {
+                ui.heading("Hello World!");
+                if ui.button("Quit").clicked() {
+                    window.set_should_close(true);
+                }
 
-            egui::ComboBox::from_label("Version")
-                .width(150.0)
-                .selected_text("foo")
-                .show_ui(ui, |ui| {
-                    egui::CollapsingHeader::new("Dev")
-                        .default_open(true)
-                        .show(ui, |ui| {
-                            ui.label("contents");
-                        });
-                });
-        });
+                egui::ComboBox::from_label("Version")
+                    .width(150.0)
+                    .selected_text("foo")
+                    .show_ui(ui, |ui| {
+                        egui::CollapsingHeader::new("Dev")
+                            .default_open(true)
+                            .show(ui, |ui| {
+                                ui.label("contents");
+                            });
+                    });
+
+                ui.label(format!(
+                    "window content scale: {:?}",
+                    window.get_content_scale()
+                ));
+                ui.label(format!(
+                    "monitor content scale: {:?}",
+                    glfw.with_connected_monitors(|_, monitors| {
+                        monitors
+                            .iter()
+                            .map(|monitor| monitor.get_content_scale())
+                            .collect::<Vec<_>>()
+                    })
+                ));
+                ui.label(format!(
+                    "monitor physical size in mm: {:?}",
+                    glfw.with_connected_monitors(|_, monitors| {
+                        monitors
+                            .iter()
+                            .map(|monitor| monitor.get_physical_size())
+                            .collect::<Vec<_>>()
+                    })
+                ));
+                ui.label(format!(
+                    "monitor physical size in inch: {:?}",
+                    glfw.with_connected_monitors(|_, monitors| {
+                        monitors
+                            .iter()
+                            .map(|monitor| {
+                                let mm = monitor.get_physical_size();
+                                (mm.0 as f32 / 25.4, mm.1 as f32 / 25.4)
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                ));
+            });
 
         egui::Window::new("window")
             .open(&mut inspection_window)
