@@ -1,5 +1,5 @@
 use egui::{Event, Pos2, RawInput};
-use glfw::{self, Action, Key, MouseButton};
+use glfw::{Key, MouseButton};
 
 pub struct Input {
     raw_input: RawInput,
@@ -181,49 +181,5 @@ impl Input {
         let screen_size = window.get_framebuffer_size();
         let screen_size = egui::vec2(screen_size.0 as _, screen_size.1 as _);
         self.set_screen_rect_from_size(screen_size);
-    }
-
-    pub fn set_modifiers(&mut self, window: &glfw::Window) {
-        let shift;
-        let control;
-        let alt;
-        let command;
-        // TODO(ish): support mac properly
-
-        if window.get_key(Key::LeftShift) == Action::Press
-            || window.get_key(Key::RightShift) == Action::Press
-        {
-            shift = true;
-        } else {
-            shift = false;
-        }
-
-        if window.get_key(Key::LeftControl) == Action::Press
-            || window.get_key(Key::RightControl) == Action::Press
-        {
-            control = true;
-        } else {
-            control = false;
-        }
-
-        if window.get_key(Key::LeftAlt) == Action::Press
-            || window.get_key(Key::RightAlt) == Action::Press
-        {
-            alt = true;
-        } else {
-            alt = false;
-        }
-
-        command = control;
-
-        let modifiers = egui::Modifiers {
-            alt,
-            ctrl: control,
-            shift,
-            mac_cmd: false,
-            command,
-        };
-
-        self.raw_input.modifiers = modifiers;
     }
 }
