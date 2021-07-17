@@ -3,6 +3,18 @@ use nalgebra_glm as glm;
 
 use egui_glfw::EguiBackend;
 
+#[derive(Debug)]
+struct MonitorData {
+    pos: (u32, u32),
+    size: (u32, u32), // width, height in pixels
+}
+
+impl MonitorData {
+    fn new(pos: (u32, u32), size: (u32, u32)) -> Self {
+        Self { pos, size }
+    }
+}
+
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
@@ -49,6 +61,19 @@ fn main() {
     }
 
     let mut inspection_window = true;
+
+    let monitor_data = glfw.with_connected_monitors(|_, monitors| {
+        monitors
+            .iter()
+            .map(|monitor| {
+                let pos = monitor.get_pos();
+                let pos = (pos.0 as _, pos.1 as _);
+                let video_mode = monitor.get_video_mode().unwrap();
+                let size = (video_mode.width, video_mode.height);
+                MonitorData::new(pos, size)
+            })
+            .collect::<Vec<_>>()
+    });
 
     while !window.should_close() {
         glfw.poll_events();
@@ -126,6 +151,24 @@ fn main() {
                     })
                 ));
                 ui.label(format!("window position: {:?}", window.get_pos()));
+                ui.label(format!("{:?}", monitor_data));
+                let get_current_monitor = || {
+                    let window_pos = window.get_pos();
+                    let window_pos = (window_pos.0 as _, window_pos.1 as _);
+                    monitor_data
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, data)| {
+                            (data.pos.0..=(data.pos.0 + data.size.0)).contains(&window_pos.0)
+                                && (data.pos.1..=(data.pos.1 + data.size.1)).contains(&window_pos.1)
+                        })
+                        .collect::<Vec<_>>()
+                };
+                let current_monitor = get_current_monitor();
+                ui.label(format!(
+                    "current monitor: {:?}",
+                    current_monitor.first().map(|(i, _)| i)
+                ));
             });
 
         egui::Window::new("window")
