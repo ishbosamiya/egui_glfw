@@ -14,6 +14,10 @@ impl Input {
         Self { raw_input }
     }
 
+    pub fn set_pixels_per_point(&mut self, pixels_per_point: f32) {
+        self.raw_input.pixels_per_point = Some(pixels_per_point);
+    }
+
     /// Refer to egui's RawInput for details on take
     pub fn take(&mut self) -> RawInput {
         self.raw_input.take()

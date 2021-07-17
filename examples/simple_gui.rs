@@ -86,7 +86,7 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
-        egui.begin_frame();
+        egui.begin_frame(&mut glfw);
 
         egui::SidePanel::left("my_side_panel")
             .resizable(true)

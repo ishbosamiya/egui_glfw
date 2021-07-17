@@ -24,6 +24,20 @@ pub struct EguiBackend {
     shader: Shader,
 }
 
+fn get_pixels_per_point(glfw: &mut glfw::Glfw) -> f32 {
+    // reference:
+    // https://developer.apple.com/documentation/appkit/nsscreen/1388375-userspacescalefactor
+    // pixels per point is the (pixels per inch of the display) / 72.0
+    let (monitor_pixels_size, monitor_size_in_inch) = glfw.with_primary_monitor(|_, monitor| {
+        let monitor = monitor.unwrap();
+        let vid_mode = monitor.get_video_mode().unwrap();
+        let mm = monitor.get_physical_size();
+        (vid_mode.width as f32, mm.0 as f32 / 25.4)
+    });
+    let pixels_per_inch = monitor_pixels_size / monitor_size_in_inch;
+    pixels_per_inch / 72.0
+}
+
 impl EguiBackend {
     pub fn new(window: &glfw::Window, glfw: &mut glfw::Glfw) -> Self {
         // TODO(ish): need to figure out how to choose the correct
@@ -33,18 +47,7 @@ impl EguiBackend {
         // axis or the diagonal for calculating the pixels per inch
         // value
 
-        // reference:
-        // https://developer.apple.com/documentation/appkit/nsscreen/1388375-userspacescalefactor
-        // pixels per point is the (pixels per inch of the display) / 72.0
-        let (monitor_pixels_size, monitor_size_in_inch) =
-            glfw.with_primary_monitor(|_, monitor| {
-                let monitor = monitor.unwrap();
-                let vid_mode = monitor.get_video_mode().unwrap();
-                let mm = monitor.get_physical_size();
-                (vid_mode.width as f32, mm.0 as f32 / 25.4)
-            });
-        let pixels_per_inch = monitor_pixels_size / monitor_size_in_inch;
-        let pixels_per_point = pixels_per_inch / 72.0;
+        let pixels_per_point = get_pixels_per_point(glfw);
         let mut input = Input::new(pixels_per_point);
         input.set_screen_rect(window);
 
@@ -69,7 +72,9 @@ impl EguiBackend {
         }
     }
 
-    pub fn begin_frame(&mut self) {
+    pub fn begin_frame(&mut self, glfw: &mut glfw::Glfw) {
+        let pixels_per_point = get_pixels_per_point(glfw);
+        self.input.set_pixels_per_point(pixels_per_point);
         self.egui_ctx.begin_frame(self.input.take());
         if self.texture.is_none() {
             self.texture = Some(Texture::from_egui(&self.egui_ctx.texture()));
