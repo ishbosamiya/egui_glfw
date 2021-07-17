@@ -16,6 +16,18 @@ use texture::Texture;
 use egui::{ClippedMesh, Output};
 use nalgebra_glm as glm;
 
+#[derive(Debug)]
+struct MonitorData {
+    pos: (u32, u32),
+    size: (u32, u32), // width, height in pixels
+}
+
+impl MonitorData {
+    fn new(pos: (u32, u32), size: (u32, u32)) -> Self {
+        Self { pos, size }
+    }
+}
+
 pub struct EguiBackend {
     egui_ctx: egui::CtxRef,
     input: Input,
@@ -24,16 +36,49 @@ pub struct EguiBackend {
     shader: Shader,
 }
 
-fn get_pixels_per_point(glfw: &mut glfw::Glfw) -> f32 {
+fn get_pixels_per_point(window: &glfw::Window, glfw: &mut glfw::Glfw) -> f32 {
     // reference:
     // https://developer.apple.com/documentation/appkit/nsscreen/1388375-userspacescalefactor
     // pixels per point is the (pixels per inch of the display) / 72.0
-    let (monitor_pixels_size, monitor_size_in_inch) = glfw.with_primary_monitor(|_, monitor| {
-        let monitor = monitor.unwrap();
-        let vid_mode = monitor.get_video_mode().unwrap();
-        let mm = monitor.get_physical_size();
-        (vid_mode.width as f32, mm.0 as f32 / 25.4)
+
+    let monitor_data = glfw.with_connected_monitors(|_, monitors| {
+        monitors
+            .iter()
+            .map(|monitor| {
+                let pos = monitor.get_pos();
+                let pos = (pos.0 as _, pos.1 as _);
+                let video_mode = monitor.get_video_mode().unwrap();
+                let size = (video_mode.width, video_mode.height);
+                MonitorData::new(pos, size)
+            })
+            .collect::<Vec<_>>()
     });
+
+    let get_current_monitor = || {
+        let window_pos = window.get_pos();
+        let window_pos = (window_pos.0 as _, window_pos.1 as _);
+        monitor_data
+            .iter()
+            .enumerate()
+            .filter(|(_, data)| {
+                (data.pos.0..=(data.pos.0 + data.size.0)).contains(&window_pos.0)
+                    && (data.pos.1..=(data.pos.1 + data.size.1)).contains(&window_pos.1)
+            })
+            .collect::<Vec<_>>()
+    };
+
+    let current_monitor = get_current_monitor();
+
+    let current_monitor = current_monitor.first().map(|(i, _)| *i).unwrap_or(0);
+
+    let (monitor_pixels_size, monitor_size_in_inch) =
+        glfw.with_connected_monitors(|_, monitors| {
+            let monitor = &monitors[current_monitor];
+            let vid_mode = monitor.get_video_mode().unwrap();
+            let mm = monitor.get_physical_size();
+            (vid_mode.width as f32, mm.0 as f32 / 25.4)
+        });
+
     let pixels_per_inch = monitor_pixels_size / monitor_size_in_inch;
     pixels_per_inch / 72.0
 }
@@ -47,7 +92,7 @@ impl EguiBackend {
         // axis or the diagonal for calculating the pixels per inch
         // value
 
-        let pixels_per_point = get_pixels_per_point(glfw);
+        let pixels_per_point = get_pixels_per_point(window, glfw);
         let mut input = Input::new(pixels_per_point);
         input.set_screen_rect(window);
 
@@ -72,8 +117,8 @@ impl EguiBackend {
         }
     }
 
-    pub fn begin_frame(&mut self, glfw: &mut glfw::Glfw) {
-        let pixels_per_point = get_pixels_per_point(glfw);
+    pub fn begin_frame(&mut self, window: &glfw::Window, glfw: &mut glfw::Glfw) {
+        let pixels_per_point = get_pixels_per_point(window, glfw);
         self.input.set_pixels_per_point(pixels_per_point);
         self.egui_ctx.begin_frame(self.input.take());
         if self.texture.is_none() {
