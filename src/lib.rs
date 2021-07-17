@@ -32,6 +32,10 @@ impl EguiBackend {
         // TODO(ish): need to figure out whether to use x axis or y
         // axis or the diagonal for calculating the pixels per inch
         // value
+
+        // reference:
+        // https://developer.apple.com/documentation/appkit/nsscreen/1388375-userspacescalefactor
+        // pixels per point is the (pixels per inch of the display) / 72.0
         let (monitor_pixels_size, monitor_size_in_inch) =
             glfw.with_primary_monitor(|_, monitor| {
                 let monitor = monitor.unwrap();
@@ -40,7 +44,7 @@ impl EguiBackend {
                 (vid_mode.width as f32, mm.0 as f32 / 25.4)
             });
         let pixels_per_inch = monitor_pixels_size / monitor_size_in_inch;
-        let pixels_per_point = pixels_per_inch / 96.0;
+        let pixels_per_point = pixels_per_inch / 72.0;
         let mut input = Input::new(pixels_per_point);
         input.set_screen_rect(window);
 
