@@ -48,18 +48,12 @@ fn main() {
         gl::ClearColor(0.1, 0.3, 0.2, 1.0);
     }
 
-    println!(
-        "pixels_per_point: {}",
-        egui.get_egui_ctx().pixels_per_point()
-    );
-
     let mut inspection_window = true;
 
     while !window.should_close() {
         glfw.poll_events();
 
         glfw::flush_messages(&events).for_each(|(_, event)| {
-            println!("event: {:?}", event);
             egui.handle_event(&event, &window);
         });
 
