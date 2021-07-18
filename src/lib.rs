@@ -96,11 +96,11 @@ impl EguiBackend {
         let mut input = Input::new(pixels_per_point);
         input.set_screen_rect(window);
 
-        let shader = Shader::new(
-            std::path::Path::new("shaders/egui_shader.vert"),
-            std::path::Path::new("shaders/egui_shader.frag"),
-        )
-        .unwrap();
+        let lib_rs_file_path = std::path::Path::new(file!());
+        let crate_path = lib_rs_file_path.parent().unwrap().parent().unwrap();
+        let egui_shader_vert_path = crate_path.join("shaders/egui_shader.vert");
+        let egui_shader_frag_path = crate_path.join("shaders/egui_shader.frag");
+        let shader = Shader::new(&egui_shader_vert_path, &egui_shader_frag_path).unwrap();
 
         println!(
             "egui: uniforms: {:?} attributes: {:?}",
