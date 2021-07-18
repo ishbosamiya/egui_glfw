@@ -42,7 +42,7 @@ fn main() {
         gl::Enable(gl::FRAMEBUFFER_SRGB);
     }
 
-    let mut egui = EguiBackend::new(&window, &mut glfw);
+    let mut egui = EguiBackend::new(&mut window, &mut glfw);
 
     unsafe {
         gl::ClearColor(0.1, 0.3, 0.2, 1.0);

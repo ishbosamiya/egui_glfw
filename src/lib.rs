@@ -84,13 +84,16 @@ fn get_pixels_per_point(window: &glfw::Window, glfw: &mut glfw::Glfw) -> f32 {
 }
 
 impl EguiBackend {
-    pub fn new(window: &glfw::Window, glfw: &mut glfw::Glfw) -> Self {
+    pub fn new(window: &mut glfw::Window, glfw: &mut glfw::Glfw) -> Self {
         // TODO(ish): need to figure out how to choose the correct
         // monitor based on the where the window is, for now choosing
         // the primary monitor to set the pixels per inch value
         // TODO(ish): need to figure out whether to use x axis or y
         // axis or the diagonal for calculating the pixels per inch
         // value
+
+        // load opengl symbols
+        gl::load_with(|symbol| window.get_proc_address(symbol));
 
         let pixels_per_point = get_pixels_per_point(window, glfw);
         let mut input = Input::new(pixels_per_point);
