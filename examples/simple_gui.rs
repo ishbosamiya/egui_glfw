@@ -26,6 +26,7 @@ fn main() {
     window.set_mouse_button_polling(true);
     window.set_framebuffer_size_polling(true);
     window.set_scroll_polling(true);
+    window.set_char_polling(true);
     window.make_current();
 
     // load opengl symbols
@@ -49,6 +50,8 @@ fn main() {
     }
 
     let mut inspection_window = true;
+    let mut text_input_test_window = true;
+    let mut text_input_test = String::from("hello");
 
     while !window.should_close() {
         glfw.poll_events();
@@ -133,6 +136,13 @@ fn main() {
             .scroll(true)
             .show(egui.get_egui_ctx(), |ui| {
                 egui.get_egui_ctx().inspection_ui(ui);
+            });
+
+        egui::Window::new("Text Input Test Window")
+            .open(&mut text_input_test_window)
+            .show(egui.get_egui_ctx(), |ui| {
+                ui.text_edit_singleline(&mut text_input_test);
+                ui.label(format!("wrote: {}", text_input_test));
             });
 
         let (width, height) = window.get_framebuffer_size();

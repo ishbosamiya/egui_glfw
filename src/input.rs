@@ -168,6 +168,19 @@ impl Input {
                 self.set_screen_rect_from_size(egui::vec2(*width as _, *height as _));
                 None
             }
+            glfw::WindowEvent::CursorEnter(enter) => {
+                if !enter {
+                    Some(Event::PointerGone)
+                } else {
+                    None
+                }
+            }
+            glfw::WindowEvent::Char(c) => Some(Event::Text(c.to_string())),
+            glfw::WindowEvent::Pos(_, _) => None,
+            glfw::WindowEvent::Refresh => None,
+            glfw::WindowEvent::Focus(_) => None,
+            glfw::WindowEvent::CharModifiers(_, _) => None,
+            glfw::WindowEvent::Close => None,
             _ => todo!("handle the event {:?}", event),
         };
         if let Some(raw_event) = raw_event {
