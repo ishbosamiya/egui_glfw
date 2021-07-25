@@ -79,10 +79,10 @@ impl Shader {
             return Err(ShaderError::Io);
         }
 
-        Self::from_strings(vertex_code, fragment_code)
+        Self::from_strings(&vertex_code, &fragment_code)
     }
 
-    pub fn from_strings(vertex_code: String, fragment_code: String) -> Result<Shader, ShaderError> {
+    pub fn from_strings(vertex_code: &str, fragment_code: &str) -> Result<Shader, ShaderError> {
         let vertex_code = std::ffi::CString::new(vertex_code).unwrap();
         let vertex_shader: gl::types::GLuint;
         unsafe {
