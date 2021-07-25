@@ -11,11 +11,11 @@ pub struct Shader {
     program_id: gl::types::GLuint,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum ShaderError {
     Io,
-    VertexCompile,
-    FragmentCompile,
+    VertexCompile(String),
+    FragmentCompile(String),
     ProgramLinker,
 }
 
@@ -23,14 +23,38 @@ impl std::fmt::Display for ShaderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ShaderError::Io => write!(f, "io error"),
-            ShaderError::VertexCompile => write!(f, "vertex_compile error"),
-            ShaderError::FragmentCompile => write!(f, "fragment_compile error"),
+            ShaderError::VertexCompile(error_log) => {
+                write!(f, "vertex shader compile error with log: {}", error_log)
+            }
+            ShaderError::FragmentCompile(error_log) => {
+                write!(f, "fragment shader compile error with log: {}", error_log)
+            }
             ShaderError::ProgramLinker => write!(f, "program_linker error"),
         }
     }
 }
 
 impl std::error::Error for ShaderError {}
+
+fn get_shader_error_log(shader: gl::types::GLuint) -> String {
+    let mut max_length = 0;
+    unsafe {
+        gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut max_length);
+    }
+
+    let mut log: Vec<u8> = vec![0; max_length.try_into().unwrap()];
+
+    unsafe {
+        gl::GetShaderInfoLog(
+            shader,
+            max_length,
+            &mut max_length,
+            log.as_mut_ptr() as *mut gl::types::GLchar,
+        );
+    }
+
+    String::from_utf8_lossy(&log[..max_length.try_into().unwrap()]).to_string()
+}
 
 impl Shader {
     pub fn new(
@@ -71,7 +95,10 @@ impl Shader {
             gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
             if success != gl::TRUE.into() {
                 eprintln!("vertex didn't compile");
-                return Err(ShaderError::VertexCompile);
+
+                let log = get_shader_error_log(vertex_shader);
+
+                return Err(ShaderError::VertexCompile(log));
             }
         }
         let fragment_code = std::ffi::CString::new(fragment_code).unwrap();
@@ -91,7 +118,10 @@ impl Shader {
             gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
             if success != gl::TRUE.into() {
                 eprintln!("fragment didn't compile");
-                return Err(ShaderError::FragmentCompile);
+
+                let log = get_shader_error_log(fragment_shader);
+
+                return Err(ShaderError::FragmentCompile(log));
             }
         }
         let shader_program: gl::types::GLuint;
