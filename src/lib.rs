@@ -99,57 +99,11 @@ impl EguiBackend {
         let mut input = Input::new(pixels_per_point);
         input.set_screen_rect(window);
 
-        let vertex_code = r#"
-#version 330 core
-
-uniform mat4 projection;
-uniform vec2 screen_size; // (width, height)
-
-in vec2 in_pos;
-in vec2 in_uv;
-in vec4 in_color;
-
-out vec4 finalColor;
-out vec2 v_uv;
-
-// 0-1 linear  from  0-255 sRGB
-// from egui_glium
-vec3 linear_from_srgb(vec3 srgb) {
-  bvec3 cutoff = lessThan(srgb, vec3(10.31475));
-  vec3 lower = srgb / vec3(3294.6);
-  vec3 higher = pow((srgb + vec3(14.025)) / vec3(269.025), vec3(2.4));
-  return mix(higher, lower, cutoff);
-}
-
-vec4 linear_from_srgba(vec4 srgba) {
-  return vec4(linear_from_srgb(srgba.rgb), srgba.a / 255.0);
-}
-
-void main()
-{
-  vec2 pos = vec2(in_pos.x / screen_size.x, 1.0 - in_pos.y / screen_size.y) * screen_size;
-  gl_Position = projection * vec4(pos, -10.0, 1.0);
-  finalColor = linear_from_srgba(in_color);
-  v_uv = in_uv;
-}
-"#;
-        let fragment_code = r#"
-#version 330 core
-
-uniform sampler2D egui_texture;
-
-in vec4 finalColor;
-in vec2 v_uv;
-out vec4 fragColor;
-
-void main()
-{
-  fragColor = finalColor * texture(egui_texture, v_uv);
-}
-"#;
-
-        let shader =
-            Shader::from_strings(vertex_code.to_string(), fragment_code.to_string()).unwrap();
+        let lib_rs_file_path = std::path::Path::new(file!());
+        let crate_path = lib_rs_file_path.parent().unwrap().parent().unwrap();
+        let egui_shader_vert_path = crate_path.join("shaders/egui_shader.vert");
+        let egui_shader_frag_path = crate_path.join("shaders/egui_shader.frag");
+        let shader = Shader::new(&egui_shader_vert_path, &egui_shader_frag_path).unwrap();
 
         println!(
             "egui: uniforms: {:?} attributes: {:?}",
