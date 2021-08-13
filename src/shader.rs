@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use nalgebra_glm as glm;
 
 use std::convert::TryInto;

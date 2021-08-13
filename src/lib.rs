@@ -1,9 +1,9 @@
-pub mod drawable;
-pub mod gpu_immediate;
-pub mod input;
-pub mod shader;
-pub mod texture;
-pub mod util;
+mod drawable;
+mod gpu_immediate;
+mod input;
+mod shader;
+mod texture;
+mod util;
 
 use std::usize;
 

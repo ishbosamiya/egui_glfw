@@ -1,5 +1,5 @@
 // Based on Blender's GPU Immediate work-alike system
-
+#![allow(dead_code)]
 use std::convert::TryInto;
 
 use crate::shader::Shader;
@@ -445,7 +445,7 @@ impl GPUImmediate {
             }
         }
 
-        if self.buffer_data == std::ptr::null_mut() {
+        if self.buffer_data.is_null() {
             loop {
                 let error;
                 unsafe {
