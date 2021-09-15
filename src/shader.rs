@@ -17,7 +17,7 @@ pub enum ShaderError {
     Io,
     VertexCompile(String),
     FragmentCompile(String),
-    ProgramLinker,
+    ProgramLinker(String),
 }
 
 impl std::fmt::Display for ShaderError {
@@ -30,7 +30,9 @@ impl std::fmt::Display for ShaderError {
             ShaderError::FragmentCompile(error_log) => {
                 write!(f, "fragment shader compile error with log: {}", error_log)
             }
-            ShaderError::ProgramLinker => write!(f, "program_linker error"),
+            ShaderError::ProgramLinker(error_log) => {
+                write!(f, "program linker error with log: {}", error_log)
+            }
         }
     }
 }
@@ -48,6 +50,26 @@ fn get_shader_error_log(shader: gl::types::GLuint) -> String {
     unsafe {
         gl::GetShaderInfoLog(
             shader,
+            max_length,
+            &mut max_length,
+            log.as_mut_ptr() as *mut gl::types::GLchar,
+        );
+    }
+
+    String::from_utf8_lossy(&log[..max_length.try_into().unwrap()]).to_string()
+}
+
+fn get_program_error_log(program: gl::types::GLuint) -> String {
+    let mut max_length = 0;
+    unsafe {
+        gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut max_length);
+    }
+
+    let mut log: Vec<u8> = vec![0; max_length.try_into().unwrap()];
+
+    unsafe {
+        gl::GetProgramInfoLog(
+            program,
             max_length,
             &mut max_length,
             log.as_mut_ptr() as *mut gl::types::GLchar,
@@ -137,7 +159,10 @@ impl Shader {
             gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
             if success != gl::TRUE.into() {
                 eprintln!("program not linked");
-                return Err(ShaderError::ProgramLinker);
+
+                let log = get_program_error_log(shader_program);
+
+                return Err(ShaderError::ProgramLinker(log));
             }
         }
 
