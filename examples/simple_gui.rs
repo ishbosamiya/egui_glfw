@@ -1,5 +1,3 @@
-use std::convert::TryInto;
-
 use glfw::{self, Context};
 use nalgebra_glm as glm;
 
@@ -174,7 +172,7 @@ fn main() {
             }
 
             ui.image(
-                egui::TextureId::User(texture.get_gl_tex().try_into().unwrap()),
+                egui::TextureId::User(texture.get_gl_tex().into()),
                 &[texture.get_width() as _, texture.get_height() as _],
             );
         });
