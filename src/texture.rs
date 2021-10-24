@@ -12,6 +12,24 @@ pub struct Texture {
 }
 
 impl Texture {
+    pub fn new(width: usize, height: usize, pixels: Vec<(u8, u8, u8, u8)>) -> Self {
+        assert_eq!(pixels.len(), width * height);
+
+        let gl_tex = Self::gen_gl_texture();
+
+        let res = Self {
+            version: 0,
+            width,
+            height,
+            pixels,
+            gl_tex,
+        };
+
+        res.new_texture_to_gl();
+
+        res
+    }
+
     pub fn from_egui(tex: &egui::Texture) -> Self {
         let gl_tex = Self::gen_gl_texture();
         let res = Self {
@@ -31,6 +49,14 @@ impl Texture {
         res.new_texture_to_gl();
 
         res
+    }
+
+    pub fn get_width(&self) -> usize {
+        self.width
+    }
+
+    pub fn get_height(&self) -> usize {
+        self.height
     }
 
     pub fn update_from_egui(&mut self, tex: &egui::Texture) {
@@ -90,6 +116,10 @@ impl Texture {
             gl::ActiveTexture(target);
             gl::BindTexture(gl::TEXTURE_2D, self.gl_tex);
         }
+    }
+
+    pub fn get_gl_tex(&self) -> GLuint {
+        self.gl_tex
     }
 
     fn new_texture_to_gl(&self) {
