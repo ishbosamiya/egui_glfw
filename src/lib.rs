@@ -5,13 +5,13 @@ mod shader;
 mod texture;
 mod util;
 
-use std::usize;
+use std::{convert::TryInto, usize};
 
 use drawable::Drawable;
 use gpu_immediate::{GPUImmediate, GPUVertCompType, GPUVertFetchMode};
 use input::Input;
 use shader::Shader;
-use texture::Texture;
+pub use texture::Texture;
 
 use egui::{ClippedMesh, Output};
 use nalgebra_glm as glm;
@@ -155,7 +155,12 @@ impl EguiBackend {
         texture.update_from_egui(&self.egui_ctx.texture());
         texture.activate(31);
 
-        let mut draw_data = ClippedMeshDrawData::new(&mut self.imm, &self.shader, screen_size);
+        let mut draw_data = ClippedMeshDrawData::new(
+            &mut self.imm,
+            &self.shader,
+            screen_size,
+            texture.get_gl_tex(),
+        );
         meshes
             .iter()
             .for_each(|mesh| mesh.draw(&mut draw_data).unwrap_or(()));
@@ -177,14 +182,21 @@ struct ClippedMeshDrawData<'a> {
     shader: &'a Shader,
 
     screen_size: glm::Vec2,
+    egui_texture_gl_tex: gl::types::GLuint,
 }
 
 impl<'a> ClippedMeshDrawData<'a> {
-    pub fn new(imm: &'a mut GPUImmediate, shader: &'a Shader, screen_size: glm::Vec2) -> Self {
+    pub fn new(
+        imm: &'a mut GPUImmediate,
+        shader: &'a Shader,
+        screen_size: glm::Vec2,
+        egui_texture_gl_tex: gl::types::GLuint,
+    ) -> Self {
         Self {
             imm,
             shader,
             screen_size,
+            egui_texture_gl_tex,
         }
     }
 }
@@ -193,6 +205,16 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
     fn draw(&self, extra_data: &mut ClippedMeshDrawData) -> Result<(), ()> {
         let rect = &self.0;
         let mesh = &self.1;
+
+        match mesh.texture_id {
+            egui::TextureId::Egui => unsafe {
+                gl::BindTexture(gl::TEXTURE_2D, extra_data.egui_texture_gl_tex);
+            },
+            egui::TextureId::User(gl_tex) => unsafe {
+                gl::BindTexture(gl::TEXTURE_2D, gl_tex.try_into().unwrap());
+            },
+        }
+
         if mesh.indices.is_empty() {
             // TODO(ish): make this a proper error
             return Err(()); // mesh is not a mesh, no indices
