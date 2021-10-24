@@ -1,7 +1,9 @@
+use std::convert::TryInto;
+
 use glfw::{self, Context};
 use nalgebra_glm as glm;
 
-use egui_glfw::EguiBackend;
+use egui_glfw::{EguiBackend, Texture};
 
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -48,6 +50,17 @@ fn main() {
     unsafe {
         gl::ClearColor(0.1, 0.3, 0.2, 1.0);
     }
+
+    let mut texture_param_t = 0.0;
+    let mut texture_param_r = 1.25;
+    let mut texture_width = 300;
+    let mut texture_height = 200;
+    let mut texture = generate_texture(
+        texture_width,
+        texture_height,
+        texture_param_t,
+        texture_param_r,
+    );
 
     let mut inspection_window = true;
     let mut text_input_test_window = true;
@@ -145,9 +158,87 @@ fn main() {
                 ui.label(format!("wrote: {}", text_input_test));
             });
 
+        egui::Window::new("User Texture Test Window").show(egui.get_egui_ctx(), |ui| {
+            ui.add(egui::Slider::new(&mut texture_width, 0..=512).text("Image Width"));
+            ui.add(egui::Slider::new(&mut texture_height, 0..=512).text("Image Height"));
+            ui.add(egui::Slider::new(&mut texture_param_t, 0.0..=1.0).text("Parameter 1"));
+            ui.add(egui::Slider::new(&mut texture_param_r, 0.0..=1.0).text("Parameter 2"));
+
+            if ui.button("Generate Texture").clicked() {
+                texture = generate_texture(
+                    texture_width,
+                    texture_height,
+                    texture_param_t,
+                    texture_param_r,
+                );
+            }
+
+            ui.image(
+                egui::TextureId::User(texture.get_gl_tex().try_into().unwrap()),
+                &[texture.get_width() as _, texture.get_height() as _],
+            );
+        });
+
         let (width, height) = window.get_framebuffer_size();
         let _output = egui.end_frame(glm::vec2(width as _, height as _));
 
         window.swap_buffers();
     }
+}
+
+fn generate_texture(
+    texture_width: usize,
+    texture_height: usize,
+    texture_param_t: f64,
+    texture_param_r: f64,
+) -> Texture {
+    Texture::new(
+        texture_width,
+        texture_height,
+        (0..(texture_width * texture_height))
+            .map(|pixel| {
+                let pixel_x = pixel % texture_width;
+                let pixel_y = pixel / texture_height;
+                let (u, v) = (
+                    pixel_x as f64 / texture_width as f64,
+                    pixel_y as f64 / texture_height as f64,
+                );
+
+                // generating texture credits: notargs @notargs
+                // https://twitter.com/notargs/status/1250468645030858753?s=20
+
+                let func = |mut p: glm::DVec3| {
+                    p[2] -= texture_param_t * 10.0;
+                    let a = p[2] * 0.1;
+
+                    let b = glm::mat2(a.cos(), a.sin(), -a.sin(), a.cos()) * p.xy();
+                    p[0] = b[0];
+                    p[1] = b[1];
+
+                    0.1 - (glm::vec2(p[0].cos(), p[1].cos()) + glm::vec2(p[1].sin(), p[2].sin()))
+                        .norm()
+                };
+
+                let param_r = glm::vec3(texture_param_r, texture_param_r, texture_param_r);
+                let d = glm::vec3(0.5, 0.5, 0.5) - glm::vec3(u, v, 1.0) / param_r[1];
+
+                let mut p = glm::zero();
+                for _ in 0..32 {
+                    let val = func(p) * d;
+                    p += val;
+                }
+
+                let color = (glm::vec3(p[0].sin(), p[1].sin(), p[2].sin())
+                    + glm::vec3(2.0, 5.0, 9.0))
+                    / p.norm();
+
+                (
+                    (color[0] * 255.0) as _,
+                    (color[1] * 255.0) as _,
+                    (color[2] * 255.0) as _,
+                    255,
+                )
+            })
+            .collect(),
+    )
 }
