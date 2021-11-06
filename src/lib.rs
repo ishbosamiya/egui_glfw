@@ -13,6 +13,11 @@ use input::Input;
 use shader::Shader;
 pub use texture::Texture;
 
+/// public re-export of `egui` so version related errors do not
+/// occur. `use egui_glfw::egui;` instead of adding `egui` as a
+/// separate dependency along side egui_glfw.
+pub use egui;
+
 use egui::{ClippedMesh, Output};
 use nalgebra_glm as glm;
 
