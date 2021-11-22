@@ -300,7 +300,11 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
         mesh.indices.iter().for_each(|index| {
             let vert = &mesh.vertices[*index as usize];
 
-            imm.attr_2f(uv_attr, vert.uv.x, vert.uv.y);
+            // need to flip the y coordinate of the UV since egui has
+            // (0.0, 0.0) as top left and (1.0, 1.0) as bottom right
+            // but OpenGL has (0.0, 0.0) as bottom left and (1.0, 1.0)
+            // as top right
+            imm.attr_2f(uv_attr, vert.uv.x, 1.0 - vert.uv.y);
             imm.attr_4f(
                 color_attr,
                 vert.color.r().into(),

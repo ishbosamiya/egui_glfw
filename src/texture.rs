@@ -6,12 +6,20 @@ pub struct Texture {
     version: u64,
     width: usize,
     height: usize,
+
+    /// pixels of the image stored from bottom left row wise
     pixels: Vec<(u8, u8, u8, u8)>,
 
     gl_tex: GLuint,
 }
 
 impl Texture {
+    /// Create a new texture with given width and height. Pixels must
+    /// be from bottom left row wise.
+    ///
+    /// # Panic
+    ///
+    /// Asserts that the pixels length is equal to width * height.
     pub fn new(width: usize, height: usize, pixels: Vec<(u8, u8, u8, u8)>) -> Self {
         assert_eq!(pixels.len(), width * height);
 
@@ -38,8 +46,12 @@ impl Texture {
             height: tex.size()[1],
             pixels: tex
                 .pixels
-                .iter()
-                .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
+                .chunks(tex.size()[0])
+                .rev()
+                .flat_map(|row| {
+                    row.iter()
+                        .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
+                })
                 .collect(),
             gl_tex,
         };
@@ -69,8 +81,12 @@ impl Texture {
         self.height = tex.height;
         self.pixels = tex
             .pixels
-            .iter()
-            .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
+            .chunks(tex.size()[0])
+            .rev()
+            .flat_map(|row| {
+                row.iter()
+                    .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
+            })
             .collect();
 
         self.new_texture_to_gl();
