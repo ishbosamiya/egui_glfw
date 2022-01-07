@@ -5,6 +5,24 @@ mod shader;
 mod texture;
 mod util;
 
+#[cfg(all(
+    feature = "egui_0_16",
+    any(feature = "egui_0_15", feature = "egui_0_14")
+))]
+compile_error!("multiple egui versions through features cannot be enabled at the same time");
+#[cfg(all(feature = "egui_0_15", any(feature = "egui_0_14")))]
+compile_error!("multiple egui versions through features cannot be enabled at the same time");
+
+/// public re-export of `egui` so version related errors do not
+/// occur. `use egui_glfw::egui;` instead of adding `egui` as a
+/// separate dependency along side egui_glfw.
+#[cfg(feature = "egui_0_14")]
+pub extern crate dep_egui_0_14 as egui;
+#[cfg(feature = "egui_0_15")]
+pub extern crate dep_egui_0_15 as egui;
+#[cfg(feature = "egui_0_16")]
+pub extern crate dep_egui_0_16 as egui;
+
 use std::{convert::TryInto, usize};
 
 use drawable::Drawable;
@@ -12,11 +30,6 @@ use gpu_immediate::{GPUImmediate, GPUVertCompType, GPUVertFetchMode};
 use input::Input;
 use shader::Shader;
 pub use texture::Texture;
-
-/// public re-export of `egui` so version related errors do not
-/// occur. `use egui_glfw::egui;` instead of adding `egui` as a
-/// separate dependency along side egui_glfw.
-pub use egui;
 
 use egui::{ClippedMesh, Output};
 use nalgebra_glm as glm;
@@ -128,7 +141,16 @@ impl EguiBackend {
         self.input.set_pixels_per_point(pixels_per_point);
         self.egui_ctx.begin_frame(self.input.take());
         if self.texture.is_none() {
-            self.texture = Some(Texture::from_egui(&self.egui_ctx.texture()));
+            // egui 0.16 onward switches to font_image() and FontImage
+            // instead of using texture() and Texture
+            #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
+            {
+                self.texture = Some(Texture::from_egui(&self.egui_ctx.texture()));
+            }
+            #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
+            {
+                self.texture = Some(Texture::from_egui(&self.egui_ctx.font_image()));
+            }
         }
     }
 
@@ -157,7 +179,16 @@ impl EguiBackend {
     fn draw_gui(&mut self, meshes: &[ClippedMesh], screen_size: glm::Vec2) {
         self.shader.set_int("egui_texture\0", 31);
         let texture = self.texture.as_mut().unwrap();
-        texture.update_from_egui(&self.egui_ctx.texture());
+        // egui 0.16 onward switches to font_image() and FontImage
+        // instead of using texture() and Texture
+        #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
+        {
+            texture.update_from_egui(&self.egui_ctx.texture());
+        }
+        #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
+        {
+            texture.update_from_egui(&self.egui_ctx.font_image());
+        }
         texture.activate(31);
 
         let mut draw_data = ClippedMeshDrawData::new(

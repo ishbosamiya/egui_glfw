@@ -158,8 +158,17 @@ impl Input {
                 })
             }
             glfw::WindowEvent::Scroll(x, y) => {
-                self.raw_input.scroll_delta = egui::vec2(*x as _, *y as _);
-                None
+                // egui 0.16 onward switches to Event::Scroll and
+                // Event::Zoom instead of using scroll_delta
+                #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
+                {
+                    self.raw_input.scroll_delta = egui::vec2(*x as _, *y as _);
+                    None
+                }
+                #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
+                {
+                    Some(Event::Scroll(egui::vec2(*x as _, *y as _)))
+                }
             }
             glfw::WindowEvent::FramebufferSize(width, height) => {
                 unsafe {

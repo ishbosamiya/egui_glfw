@@ -38,7 +38,38 @@ impl Texture {
         res
     }
 
+    // egui 0.16 onward switches to font_image() and FontImage
+    // instead of using texture() and Texture
+    #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
     pub fn from_egui(tex: &egui::Texture) -> Self {
+        let gl_tex = Self::gen_gl_texture();
+        let res = Self {
+            version: tex.version,
+            width: tex.size()[0],
+            height: tex.size()[1],
+            pixels: tex
+                .pixels
+                .chunks(tex.size()[0])
+                .rev()
+                .flat_map(|row| {
+                    row.iter()
+                        .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
+                })
+                .collect(),
+            gl_tex,
+        };
+
+        assert_eq!(res.pixels.len(), res.width * res.height);
+
+        res.new_texture_to_gl();
+
+        res
+    }
+
+    // egui 0.16 onward switches to font_image() and FontImage
+    // instead of using texture() and Texture
+    #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
+    pub fn from_egui(tex: &egui::FontImage) -> Self {
         let gl_tex = Self::gen_gl_texture();
         let res = Self {
             version: tex.version,
@@ -71,7 +102,34 @@ impl Texture {
         self.height
     }
 
+    // egui 0.16 onward switches to font_image() and FontImage
+    // instead of using texture() and Texture
+    #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
     pub fn update_from_egui(&mut self, tex: &egui::Texture) {
+        if self.version == tex.version {
+            return;
+        }
+
+        self.version = tex.version;
+        self.width = tex.width;
+        self.height = tex.height;
+        self.pixels = tex
+            .pixels
+            .chunks(tex.size()[0])
+            .rev()
+            .flat_map(|row| {
+                row.iter()
+                    .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
+            })
+            .collect();
+
+        self.new_texture_to_gl();
+    }
+
+    // egui 0.16 onward switches to font_image() and FontImage
+    // instead of using texture() and Texture
+    #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
+    pub fn update_from_egui(&mut self, tex: &egui::FontImage) {
         if self.version == tex.version {
             return;
         }

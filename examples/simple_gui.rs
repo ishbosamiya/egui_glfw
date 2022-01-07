@@ -1,7 +1,7 @@
 use glfw::{self, Context};
 use nalgebra_glm as glm;
 
-use egui_glfw::{EguiBackend, Texture};
+use egui_glfw::{egui, EguiBackend, Texture};
 
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -142,12 +142,14 @@ fn main() {
                 ui.label(format!("window position: {:?}", window.get_pos()));
             });
 
-        egui::Window::new("window")
-            .open(&mut inspection_window)
-            .scroll(true)
-            .show(egui.get_egui_ctx(), |ui| {
-                egui.get_egui_ctx().inspection_ui(ui);
-            });
+        let egui_window = egui::Window::new("window").open(&mut inspection_window);
+        #[cfg(feature = "egui_0_14")]
+        let egui_window = egui_window.scroll(true);
+        #[cfg(not(feature = "egui_0_14"))]
+        let egui_window = egui_window.vscroll(true);
+        egui_window.show(egui.get_egui_ctx(), |ui| {
+            egui.get_egui_ctx().inspection_ui(ui);
+        });
 
         egui::Window::new("Text Input Test Window")
             .open(&mut text_input_test_window)
