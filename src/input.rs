@@ -167,7 +167,14 @@ impl Input {
                 }
                 #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
                 {
-                    Some(Event::Scroll(egui::vec2(*x as _, *y as _)))
+                    if Self::is_pressed(&window.get_key(glfw::Key::LeftControl))
+                        || Self::is_pressed(&window.get_key(glfw::Key::RightControl))
+                    {
+                        let factor = (y / 50.0).exp();
+                        Some(Event::Zoom(factor as _))
+                    } else {
+                        Some(Event::Scroll(egui::vec2(*x as _, *y as _)))
+                    }
                 }
             }
             glfw::WindowEvent::FramebufferSize(width, height) => {
