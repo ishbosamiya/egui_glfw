@@ -46,6 +46,8 @@ impl MonitorData {
     }
 }
 
+/// Egui backend by which the GUI can be drawn, inputs are handled,
+/// etc.
 pub struct EguiBackend {
     egui_ctx: egui::CtxRef,
     input: Input,
@@ -102,6 +104,7 @@ fn get_pixels_per_point(window: &glfw::Window, glfw: &mut glfw::Glfw) -> f32 {
 }
 
 impl EguiBackend {
+    /// Create a new egui backend utilizing glfw as the backend.
     pub fn new(window: &mut glfw::Window, glfw: &mut glfw::Glfw) -> Self {
         // TODO(ish): need to figure out how to choose the correct
         // monitor based on the where the window is, for now choosing
@@ -136,6 +139,8 @@ impl EguiBackend {
         }
     }
 
+    /// Start the egui frame. This sets up the necessary data for egui
+    /// to work.
     pub fn begin_frame(&mut self, window: &glfw::Window, glfw: &mut glfw::Glfw) {
         let pixels_per_point = get_pixels_per_point(window, glfw);
         self.input.set_pixels_per_point(pixels_per_point);
@@ -154,6 +159,39 @@ impl EguiBackend {
         }
     }
 
+    /// End the egui frame. This processes the GUI to render it to the
+    /// screen.
+    ///
+    /// It is best to have this as the final call in the entire frame
+    /// especially when other elements also drawn using OpenGL to the
+    /// default render target so that the GUI is overlayed on top the
+    /// other content without having to mess with the depth buffer.
+    ///
+    /// # Note
+    ///
+    /// It is up to the caller to handle the [`egui::Output`], it is
+    /// not processed by this function. This allows for more
+    /// flexibility in the implementation. But for most use cases, it
+    /// is useful to have clipboard support thus see the provided
+    /// example to handle the same.
+    ///
+    /// # Example
+    ///
+    /// The following example handles copying the required text to the
+    /// clipboard using the crate `copypasta_ext`.
+    ///
+    /// ```no_run
+    /// let output = egui.end_frame(glm::vec2(width as _, height as _));
+    ///
+    /// if !output.copied_text.is_empty() {
+    ///     match copypasta_ext::try_context() {
+    ///         Some(mut context) => context.set_contents(output.copied_text).unwrap(),
+    ///         None => {
+    ///             eprintln!("enable to gather context for clipboard");
+    ///         }
+    ///     }
+    /// }
+    /// ```
     pub fn end_frame(&mut self, screen_size: glm::Vec2) -> Output {
         let (output, shapes) = self.egui_ctx.end_frame();
 
@@ -176,6 +214,7 @@ impl EguiBackend {
         output
     }
 
+    /// Draw the gui by processing the provided `meshes`.
     fn draw_gui(&mut self, meshes: &[ClippedMesh], screen_size: glm::Vec2) {
         self.shader.set_int("egui_texture\0", 31);
         let texture = self.texture.as_mut().unwrap();
@@ -202,6 +241,11 @@ impl EguiBackend {
             .for_each(|mesh| mesh.draw(&mut draw_data).unwrap_or(()));
     }
 
+    /// Process the [`glfw::WindowEvent`] to convert it to an event
+    /// that egui supports.
+    ///
+    /// Also look at [`Self::push_event()`] for handling other egui
+    /// events that are currently unsupported.
     pub fn handle_event(&mut self, event: &glfw::WindowEvent, window: &glfw::Window) {
         self.input.handle_event(event, window);
     }
@@ -257,10 +301,16 @@ impl EguiBackend {
     ///     _ => {}
     /// }
     /// ```
+    ///
+    /// Note that for [`egui::Event::Cut`] and [`egui::Event::Copy`],
+    /// it is important support handle the output so that the copied
+    /// text is copied to the clipboard. See [`Self::end_frame()`] for
+    /// more details.
     pub fn push_event(&mut self, event: egui::Event) {
         self.input.push_event(event);
     }
 
+    /// Get the egui context.
     pub fn get_egui_ctx(&self) -> &egui::CtxRef {
         &self.egui_ctx
     }
