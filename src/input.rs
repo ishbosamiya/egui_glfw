@@ -206,6 +206,15 @@ impl Input {
         }
     }
 
+    /// Push a [`egui::Event`] to egui. This is useful when a certain
+    /// event is not handled yet or it is not possible to handle an
+    /// event due to discrepancies in what shortcut to use. An example
+    /// of this is [`egui::Event::Copy`], the user may want a shortcut
+    /// that is not `C-c`.
+    pub fn push_event(&mut self, event: egui::Event) {
+        self.raw_input.events.push(event);
+    }
+
     fn set_screen_rect_from_size(&mut self, screen_size: egui::Vec2) {
         // TODO(ish): will need to divide with pixels per point most probably
         self.raw_input.screen_rect =

@@ -206,6 +206,61 @@ impl EguiBackend {
         self.input.handle_event(event, window);
     }
 
+    /// Push a [`egui::Event`] to egui. This is useful when a certain
+    /// event is not handled yet or it is not possible to handle an
+    /// event due to discrepancies in what shortcut to use. An example
+    /// of this is [`egui::Event::Copy`], the user may want a shortcut
+    /// that is not `C-c`.
+    ///
+    /// # Example
+    ///
+    /// A common use case would be to setup the code for cut, copy,
+    /// paste since it is not handled by `egui_glfw` due to shortcut
+    /// discrepancies.
+    ///
+    /// ```no_run
+    /// egui.handle_event(event, window);
+    /// match event {
+    ///     glfw::WindowEvent::Key(
+    ///         glfw::Key::X,
+    ///         _,
+    ///         glfw::Action::Press,
+    ///         glfw::Modifiers::Control,
+    ///     ) => {
+    ///         egui.push_event(egui::Event::Cut);
+    ///     }
+    ///     glfw::WindowEvent::Key(
+    ///         glfw::Key::C,
+    ///         _,
+    ///         glfw::Action::Press,
+    ///         glfw::Modifiers::Control,
+    ///     ) => {
+    ///         egui.push_event(egui::Event::Copy);
+    ///     }
+    ///     glfw::WindowEvent::Key(
+    ///         glfw::Key::V,
+    ///         _,
+    ///         glfw::Action::Press,
+    ///         glfw::Modifiers::Control,
+    ///     ) => {
+    ///         let text = match copypasta_ext::try_context() {
+    ///             Some(mut context) => Some(context.get_contents().unwrap()),
+    ///             None => {
+    ///                 eprintln!("enable to gather context for clipboard");
+    ///                 None
+    ///             }
+    ///         };
+    ///         if let Some(text) = text {
+    ///             egui.push_event(egui::Event::Text(text));
+    ///         }
+    ///     }
+    ///     _ => {}
+    /// }
+    /// ```
+    pub fn push_event(&mut self, event: egui::Event) {
+        self.input.push_event(event);
+    }
+
     pub fn get_egui_ctx(&self) -> &egui::CtxRef {
         &self.egui_ctx
     }
