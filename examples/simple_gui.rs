@@ -69,6 +69,43 @@ fn main() {
 
         glfw::flush_messages(&events).for_each(|(_, event)| {
             egui.handle_event(&event, &window);
+
+            match event {
+                glfw::WindowEvent::Key(
+                    glfw::Key::X,
+                    _,
+                    glfw::Action::Press,
+                    glfw::Modifiers::Control,
+                ) => {
+                    egui.push_event(egui::Event::Cut);
+                }
+                glfw::WindowEvent::Key(
+                    glfw::Key::C,
+                    _,
+                    glfw::Action::Press,
+                    glfw::Modifiers::Control,
+                ) => {
+                    egui.push_event(egui::Event::Copy);
+                }
+                glfw::WindowEvent::Key(
+                    glfw::Key::V,
+                    _,
+                    glfw::Action::Press,
+                    glfw::Modifiers::Control,
+                ) => {
+                    let text = match copypasta_ext::try_context() {
+                        Some(mut context) => Some(context.get_contents().unwrap()),
+                        None => {
+                            eprintln!("enable to gather context for clipboard");
+                            None
+                        }
+                    };
+                    if let Some(text) = text {
+                        egui.push_event(egui::Event::Text(text));
+                    }
+                }
+                _ => {}
+            }
         });
 
         unsafe {
@@ -180,7 +217,16 @@ fn main() {
         });
 
         let (width, height) = window.get_framebuffer_size();
-        let _output = egui.end_frame(glm::vec2(width as _, height as _));
+        let output = egui.end_frame(glm::vec2(width as _, height as _));
+
+        if !output.copied_text.is_empty() {
+            match copypasta_ext::try_context() {
+                Some(mut context) => context.set_contents(output.copied_text).unwrap(),
+                None => {
+                    eprintln!("enable to gather context for clipboard");
+                }
+            }
+        }
 
         window.swap_buffers();
     }
