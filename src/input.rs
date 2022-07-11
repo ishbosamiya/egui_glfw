@@ -216,4 +216,16 @@ impl Input {
         let screen_size = egui::vec2(screen_size.0 as _, screen_size.1 as _);
         self.set_screen_rect_from_size(screen_size);
     }
+
+    /// Get the internal raw input state mutably.
+    ///
+    /// # Safety
+    ///
+    /// This is basically never required unless something isn't
+    /// supported. Need to be careful about how it is used. There
+    /// cannot be any crashes but can cause the GUI to mess up if used
+    /// wrong.
+    pub unsafe fn get_raw_input(&mut self) -> &mut RawInput {
+        &mut self.raw_input
+    }
 }
