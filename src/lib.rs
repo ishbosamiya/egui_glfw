@@ -127,6 +127,9 @@ impl EguiBackend {
     pub fn begin_frame(&mut self, window: &glfw::Window, glfw: &mut glfw::Glfw) {
         let pixels_per_point = get_pixels_per_point(window, glfw);
         self.input.set_pixels_per_point(pixels_per_point);
+        unsafe {
+            self.get_raw_input().max_texture_side = Some(gl::MAX_TEXTURE_SIZE.try_into().unwrap());
+        }
         self.egui_ctx.begin_frame(self.input.take());
     }
 
