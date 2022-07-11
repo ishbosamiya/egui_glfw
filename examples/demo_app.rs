@@ -45,6 +45,7 @@ fn main() {
 
     let mut egui = EguiBackend::new(&mut window, &mut glfw);
 
+    let mut inspection_window = true;
     let mut demo_windows = egui_demo_lib::DemoWindows::default();
     let mut color_test = egui_demo_lib::ColorTest::default();
     let mut color_test_window_open = false;
@@ -104,6 +105,13 @@ fn main() {
         egui.begin_frame(&window, &mut glfw);
 
         demo_windows.ui(egui.get_egui_ctx());
+
+        egui::Window::new("window")
+            .open(&mut inspection_window)
+            .vscroll(true)
+            .show(egui.get_egui_ctx(), |ui| {
+                egui.get_egui_ctx().inspection_ui(ui);
+            });
 
         egui::Window::new("Color Test")
             .open(&mut color_test_window_open)
