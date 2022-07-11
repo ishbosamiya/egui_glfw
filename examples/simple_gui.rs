@@ -1,7 +1,7 @@
 use glfw::{self, Context};
 use nalgebra_glm as glm;
 
-use egui_glfw::{egui, EguiBackend, Texture};
+use egui_glfw::{egui, EguiBackend, TextureRGBA8};
 
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -180,9 +180,6 @@ fn main() {
             });
 
         let egui_window = egui::Window::new("window").open(&mut inspection_window);
-        #[cfg(feature = "egui_0_14")]
-        let egui_window = egui_window.scroll(true);
-        #[cfg(not(feature = "egui_0_14"))]
         let egui_window = egui_window.vscroll(true);
         egui_window.show(egui.get_egui_ctx(), |ui| {
             egui.get_egui_ctx().inspection_ui(ui);
@@ -219,9 +216,11 @@ fn main() {
         let (width, height) = window.get_framebuffer_size();
         let output = egui.end_frame(glm::vec2(width as _, height as _));
 
-        if !output.copied_text.is_empty() {
+        if !output.platform_output.copied_text.is_empty() {
             match copypasta_ext::try_context() {
-                Some(mut context) => context.set_contents(output.copied_text).unwrap(),
+                Some(mut context) => context
+                    .set_contents(output.platform_output.copied_text)
+                    .unwrap(),
                 None => {
                     eprintln!("enable to gather context for clipboard");
                 }
@@ -237,8 +236,8 @@ fn generate_texture(
     texture_height: usize,
     texture_param_t: f64,
     texture_param_r: f64,
-) -> Texture {
-    Texture::new(
+) -> TextureRGBA8 {
+    TextureRGBA8::from_pixels(
         texture_width,
         texture_height,
         (0..(texture_width * texture_height))

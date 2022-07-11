@@ -1,156 +1,158 @@
 use std::convert::TryInto;
 
-use gl::types::{GLuint, GLvoid};
-
-pub struct Texture {
-    version: u64,
+/// GPU Texture RGBA8. Each pixel has 4 channels, [`u8`] each.
+pub struct TextureRGBA8 {
     width: usize,
     height: usize,
 
     /// pixels of the image stored from bottom left row wise
     pixels: Vec<(u8, u8, u8, u8)>,
 
-    gl_tex: GLuint,
+    gl_tex: Option<gl::types::GLuint>,
 }
 
-impl Texture {
-    /// Create a new texture with given width and height. Pixels must
-    /// be from bottom left row wise.
-    ///
-    /// # Panic
-    ///
-    /// Asserts that the pixels length is equal to width * height.
-    pub fn new(width: usize, height: usize, pixels: Vec<(u8, u8, u8, u8)>) -> Self {
+impl TextureRGBA8 {
+    /// Create a [`TextureRGBA8`] from pixels. The pixels provided
+    /// must follow the pixel memory layout mapping of bottom left
+    /// left to right rows.
+    pub fn from_pixels(width: usize, height: usize, pixels: Vec<(u8, u8, u8, u8)>) -> Self {
         assert_eq!(pixels.len(), width * height);
-
-        let gl_tex = Self::gen_gl_texture();
-
-        let res = Self {
-            version: 0,
+        Self {
             width,
             height,
             pixels,
-            gl_tex,
-        };
-
-        res.new_texture_to_gl();
-
-        res
+            gl_tex: None,
+        }
     }
 
-    // egui 0.16 onward switches to font_image() and FontImage
-    // instead of using texture() and Texture
-    #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
-    pub fn from_egui(tex: &egui::Texture) -> Self {
-        let gl_tex = Self::gen_gl_texture();
-        let res = Self {
-            version: tex.version,
-            width: tex.size()[0],
-            height: tex.size()[1],
-            pixels: tex
-                .pixels
-                .chunks(tex.size()[0])
-                .rev()
-                .flat_map(|row| {
-                    row.iter()
-                        .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
-                })
-                .collect(),
-            gl_tex,
-        };
+    /// Create a [`TextureRGBA8`] from an egui ImageDelta.
+    pub fn from_egui(delta: &egui::epaint::image::ImageDelta) -> Option<Self> {
+        // the delta should be for the whole image, the total image
+        // size cannot be determined to update only a portion of the
+        // image
+        if !delta.is_whole() {
+            return None;
+        }
 
-        assert_eq!(res.pixels.len(), res.width * res.height);
+        let image = &delta.image;
 
-        res.new_texture_to_gl();
+        // need to flip the image vertically since egui uses top left
+        // left to right rows but opengl uses bottom left left to
+        // right rows
 
-        res
+        Some(Self {
+            width: image.width(),
+            height: image.height(),
+            pixels: match image {
+                egui::ImageData::Color(image) => image
+                    .pixels
+                    .chunks(image.width())
+                    .rev()
+                    .flat_map(|row| {
+                        row.iter()
+                            .map(|pixel| (pixel.r(), pixel.g(), pixel.b(), pixel.a()))
+                    })
+                    .collect(),
+                egui::ImageData::Font(image) => image
+                    .srgba_pixels(1.0)
+                    .map(|pixel| (pixel.r(), pixel.g(), pixel.b(), pixel.a()))
+                    .collect::<Vec<_>>()
+                    .chunks(image.width())
+                    .rev()
+                    .flat_map(|row| row.iter().copied())
+                    .collect(),
+            },
+            gl_tex: None,
+        })
     }
 
-    // egui 0.16 onward switches to font_image() and FontImage
-    // instead of using texture() and Texture
-    #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
-    pub fn from_egui(tex: &egui::FontImage) -> Self {
-        let gl_tex = Self::gen_gl_texture();
-        let res = Self {
-            version: tex.version,
-            width: tex.size()[0],
-            height: tex.size()[1],
-            pixels: tex
-                .pixels
-                .chunks(tex.size()[0])
-                .rev()
-                .flat_map(|row| {
-                    row.iter()
-                        .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
-                })
-                .collect(),
-            gl_tex,
-        };
-
-        assert_eq!(res.pixels.len(), res.width * res.height);
-
-        res.new_texture_to_gl();
-
-        res
-    }
-
-    pub fn get_width(&self) -> usize {
-        self.width
-    }
-
-    pub fn get_height(&self) -> usize {
-        self.height
-    }
-
-    // egui 0.16 onward switches to font_image() and FontImage
-    // instead of using texture() and Texture
-    #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
-    pub fn update_from_egui(&mut self, tex: &egui::Texture) {
-        if self.version == tex.version {
+    /// Update the texture from egui's ImageDelta.
+    pub fn update_from_egui(&mut self, delta: &egui::epaint::image::ImageDelta) {
+        // if the whole image has changed, then just replace self
+        if delta.is_whole() {
+            *self = Self::from_egui(delta).unwrap();
             return;
         }
 
-        self.version = tex.version;
-        self.width = tex.width;
-        self.height = tex.height;
-        self.pixels = tex
-            .pixels
-            .chunks(tex.size()[0])
-            .rev()
-            .flat_map(|row| {
-                row.iter()
-                    .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
-            })
-            .collect();
+        let gamma = 1.0;
 
-        self.new_texture_to_gl();
-    }
+        // TODO: need to optimize this, shouldn't delete the entire
+        // texture from the GPU and resend everything. It does not
+        // take advantage of the delta that is provided.
 
-    // egui 0.16 onward switches to font_image() and FontImage
-    // instead of using texture() and Texture
-    #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
-    pub fn update_from_egui(&mut self, tex: &egui::FontImage) {
-        if self.version == tex.version {
-            return;
+        // delete the entire texture from the GPU if it was previously
+        // uploaded
+        if self.gl_tex.is_some() {
+            self.cleanup_opengl();
         }
 
-        self.version = tex.version;
-        self.width = tex.width;
-        self.height = tex.height;
-        self.pixels = tex
-            .pixels
-            .chunks(tex.size()[0])
+        // the position provided will be from top left as (0, 0) but
+        // Self requires (0, 0) as bottom left, so need to update by
+        // "reversing" (flip vertically) the image during the update
+        let start_pos = delta.pos.unwrap();
+        self.pixels
+            .chunks_mut(self.width)
             .rev()
-            .flat_map(|row| {
-                row.iter()
-                    .map(|&a| egui::Color32::from_white_alpha(a).to_tuple())
+            .enumerate()
+            .skip(start_pos[1])
+            .enumerate()
+            .map_while(|(y, (row_index, row))| {
+                (row_index < (start_pos[1] + delta.image.height())).then(|| (row, y))
             })
-            .collect();
+            .for_each(|(row, y)| {
+                row.iter_mut()
+                    .enumerate()
+                    .skip(start_pos[0])
+                    .enumerate()
+                    .map_while(|(x, (column_index, pixel))| {
+                        (column_index < (start_pos[0] + delta.image.width())).then(|| (pixel, x))
+                    })
+                    .for_each(|(pixel, x)| {
+                        match &delta.image {
+                            egui::ImageData::Color(image) => {
+                                let new_pixel = image.pixels[y * image.width() + x];
+                                *pixel =
+                                    (new_pixel.r(), new_pixel.g(), new_pixel.b(), new_pixel.a())
+                            }
+                            egui::ImageData::Font(image) => {
+                                let new_pixel = image.pixels[y * image.width() + x];
+
+                                // directly from srgba_pixel()
+                                //
+                                // This is arbitrarily chosen to make text look as good as possible.
+                                // In particular, it looks good with gamma=1 and the default eframe backend,
+                                // which uses linear blending.
+                                // See https://github.com/emilk/egui/issues/1410
+                                let a = fast_round(new_pixel.powf(gamma / 2.2) * 255.0);
+
+                                *pixel = (a, a, a, a)
+                            }
+                        }
+                    });
+            });
+    }
+
+    /// # Safety
+    ///
+    /// There is no way to generate [`Texture`] without automatically
+    /// sending the texture to the GPU except during deserialization
+    /// so there is no need to call this function except immediately
+    /// after deserialization once. Unless absolutely necessary (like
+    /// sending the texture to the GPU early), [`Self::get_gl_tex()`]
+    /// should handle it.
+    pub unsafe fn send_to_gpu(&mut self) {
+        assert!(self.gl_tex.is_none());
+
+        self.gl_tex = Some(Self::gen_gl_texture());
 
         self.new_texture_to_gl();
     }
 
     pub fn activate(&mut self, texture_target: u8) {
+        if self.gl_tex.is_none() {
+            unsafe { self.send_to_gpu() };
+        }
+
         let target = match texture_target {
             0 => gl::TEXTURE0,
             1 => gl::TEXTURE1,
@@ -188,33 +190,30 @@ impl Texture {
         };
         unsafe {
             gl::ActiveTexture(target);
-            gl::BindTexture(gl::TEXTURE_2D, self.gl_tex);
+            gl::BindTexture(gl::TEXTURE_2D, self.gl_tex.unwrap());
         }
     }
 
-    pub fn get_gl_tex(&self) -> GLuint {
-        self.gl_tex
-    }
-
     fn new_texture_to_gl(&self) {
+        assert_eq!(self.pixels.len(), self.width * self.height);
         unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, self.gl_tex);
+            gl::BindTexture(gl::TEXTURE_2D, self.gl_tex.unwrap());
 
             gl::TexImage2D(
                 gl::TEXTURE_2D,
                 0,
-                gl::RGBA.try_into().unwrap(),
+                gl::RGBA8.try_into().unwrap(),
                 self.width.try_into().unwrap(),
                 self.height.try_into().unwrap(),
                 0,
                 gl::RGBA,
                 gl::UNSIGNED_BYTE,
-                self.pixels.as_ptr() as *const GLvoid,
+                self.pixels.as_ptr() as *const gl::types::GLvoid,
             )
         }
     }
 
-    fn gen_gl_texture() -> GLuint {
+    fn gen_gl_texture() -> gl::types::GLuint {
         let mut gl_tex = 0;
         unsafe {
             gl::GenTextures(1, &mut gl_tex);
@@ -251,4 +250,41 @@ impl Texture {
 
         gl_tex
     }
+
+    /// Get OpenGL texture name (GLuint) of the current texture, send
+    /// texture to GPU if not done so already.
+    pub fn get_gl_tex(&mut self) -> gl::types::GLuint {
+        if self.gl_tex.is_none() {
+            unsafe { self.send_to_gpu() };
+        }
+        self.gl_tex.unwrap()
+    }
+
+    pub fn get_width(&self) -> usize {
+        self.width
+    }
+
+    pub fn get_height(&self) -> usize {
+        self.height
+    }
+
+    pub fn cleanup_opengl(&mut self) {
+        unsafe {
+            gl::DeleteTextures(1, &self.gl_tex.unwrap());
+        }
+        self.gl_tex = None;
+    }
+}
+
+impl Drop for TextureRGBA8 {
+    fn drop(&mut self) {
+        if self.gl_tex.is_some() {
+            self.cleanup_opengl();
+        }
+    }
+}
+
+/// Fast round from egui.
+fn fast_round(r: f32) -> u8 {
+    (r + 0.5).floor() as _ // rust does a saturating cast since 1.45
 }

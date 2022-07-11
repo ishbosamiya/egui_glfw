@@ -158,25 +158,15 @@ impl Input {
                 })
             }
             glfw::WindowEvent::Scroll(x, y) => {
-                // egui 0.16 onward switches to Event::Scroll and
-                // Event::Zoom instead of using scroll_delta
-                #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
+                let multiplier = 50.0;
+                let scroll = multiplier * egui::vec2(*x as _, *y as _);
+                if Self::is_pressed(&window.get_key(glfw::Key::LeftControl))
+                    || Self::is_pressed(&window.get_key(glfw::Key::RightControl))
                 {
-                    self.raw_input.scroll_delta = egui::vec2(*x as _, *y as _);
-                    None
-                }
-                #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
-                {
-                    let multiplier = 50.0;
-                    let scroll = multiplier * egui::vec2(*x as _, *y as _);
-                    if Self::is_pressed(&window.get_key(glfw::Key::LeftControl))
-                        || Self::is_pressed(&window.get_key(glfw::Key::RightControl))
-                    {
-                        let factor = (scroll.y / 200.0).exp();
-                        Some(Event::Zoom(factor as _))
-                    } else {
-                        Some(Event::Scroll(scroll))
-                    }
+                    let factor = (scroll.y / 200.0).exp();
+                    Some(Event::Zoom(factor as _))
+                } else {
+                    Some(Event::Scroll(scroll))
                 }
             }
             glfw::WindowEvent::FramebufferSize(width, height) => {

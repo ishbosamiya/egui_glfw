@@ -5,33 +5,16 @@ mod shader;
 mod texture;
 mod util;
 
-#[cfg(all(
-    feature = "egui_0_16",
-    any(feature = "egui_0_15", feature = "egui_0_14")
-))]
-compile_error!("multiple egui versions through features cannot be enabled at the same time");
-#[cfg(all(feature = "egui_0_15", any(feature = "egui_0_14")))]
-compile_error!("multiple egui versions through features cannot be enabled at the same time");
-
-/// public re-export of `egui` so version related errors do not
-/// occur. `use egui_glfw::egui;` instead of adding `egui` as a
-/// separate dependency along side egui_glfw.
-#[cfg(feature = "egui_0_14")]
-pub extern crate dep_egui_0_14 as egui;
-#[cfg(feature = "egui_0_15")]
-pub extern crate dep_egui_0_15 as egui;
-#[cfg(feature = "egui_0_16")]
-pub extern crate dep_egui_0_16 as egui;
-
 use std::{convert::TryInto, usize};
 
 use drawable::Drawable;
 use gpu_immediate::{GPUImmediate, GPUVertCompType, GPUVertFetchMode};
 use input::Input;
 use shader::Shader;
-pub use texture::Texture;
+pub use texture::TextureRGBA8;
 
-use egui::{ClippedMesh, Output};
+pub use egui;
+use egui::{epaint::ahash::AHashMap, ClippedPrimitive, PlatformOutput};
 use nalgebra_glm as glm;
 
 #[derive(Debug)]
@@ -49,10 +32,10 @@ impl MonitorData {
 /// Egui backend by which the GUI can be drawn, inputs are handled,
 /// etc.
 pub struct EguiBackend {
-    egui_ctx: egui::CtxRef,
+    egui_ctx: egui::Context,
     input: Input,
     imm: GPUImmediate,
-    texture: Option<Texture>,
+    textures: AHashMap<egui::TextureId, TextureRGBA8>,
     shader: Shader,
 }
 
@@ -134,7 +117,7 @@ impl EguiBackend {
             egui_ctx: Default::default(),
             imm: GPUImmediate::new(),
             input,
-            texture: None,
+            textures: AHashMap::new(),
             shader,
         }
     }
@@ -145,18 +128,6 @@ impl EguiBackend {
         let pixels_per_point = get_pixels_per_point(window, glfw);
         self.input.set_pixels_per_point(pixels_per_point);
         self.egui_ctx.begin_frame(self.input.take());
-        if self.texture.is_none() {
-            // egui 0.16 onward switches to font_image() and FontImage
-            // instead of using texture() and Texture
-            #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
-            {
-                self.texture = Some(Texture::from_egui(&self.egui_ctx.texture()));
-            }
-            #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
-            {
-                self.texture = Some(Texture::from_egui(&self.egui_ctx.font_image()));
-            }
-        }
     }
 
     /// End the egui frame. This processes the GUI to render it to the
@@ -169,11 +140,11 @@ impl EguiBackend {
     ///
     /// # Note
     ///
-    /// It is up to the caller to handle the [`egui::Output`], it is
-    /// not processed by this function. This allows for more
-    /// flexibility in the implementation. But for most use cases, it
-    /// is useful to have clipboard support thus see the provided
-    /// example to handle the same.
+    /// It is up to the caller to handle the [`egui::PlatformOutput`]
+    /// within [`Output`], it is not processed by this function. This
+    /// allows for more flexibility in the implementation. But for
+    /// most use cases, it is useful to have clipboard support thus
+    /// see the provided example to handle the same.
     ///
     /// # Example
     ///
@@ -183,9 +154,11 @@ impl EguiBackend {
     /// ```no_run
     /// let output = egui.end_frame(glm::vec2(width as _, height as _));
     ///
-    /// if !output.copied_text.is_empty() {
+    /// if !output.platform_output.copied_text.is_empty() {
     ///     match copypasta_ext::try_context() {
-    ///         Some(mut context) => context.set_contents(output.copied_text).unwrap(),
+    ///         Some(mut context) => context
+    ///             .set_contents(output.platform_output.copied_text)
+    ///             .unwrap(),
     ///         None => {
     ///             eprintln!("enable to gather context for clipboard");
     ///         }
@@ -193,7 +166,43 @@ impl EguiBackend {
     /// }
     /// ```
     pub fn end_frame(&mut self, screen_size: glm::Vec2) -> Output {
-        let (output, shapes) = self.egui_ctx.end_frame();
+        let full_output = self.egui_ctx.end_frame();
+
+        // TODO: need to handle full_output.textures_delta
+        //
+        // This will involve storing all the textures internally
+        // within Self.
+
+        // delete any textures that must be freed
+        full_output
+            .textures_delta
+            .free
+            .iter()
+            .for_each(|texture_id| {
+                self.textures.remove(texture_id);
+            });
+
+        // create or update textures
+        full_output
+            .textures_delta
+            .set
+            .iter()
+            .for_each(|(texture_id, delta)| {
+                if let Some(texture) = self.textures.get_mut(texture_id) {
+                    // update the texture
+                    texture.update_from_egui(delta);
+                } else {
+                    // create the texture
+                    self.textures
+                        .insert(*texture_id, TextureRGBA8::from_egui(delta).expect("new texture created but probably got a partial delta which doesn't make sense"));
+                }
+            });
+
+        let output = Output {
+            platform_output: full_output.platform_output,
+            needs_repaint: full_output.needs_repaint,
+        };
+        let shapes = full_output.shapes;
 
         let meshes = self.egui_ctx.tessellate(shapes);
 
@@ -215,26 +224,20 @@ impl EguiBackend {
     }
 
     /// Draw the gui by processing the provided `meshes`.
-    fn draw_gui(&mut self, meshes: &[ClippedMesh], screen_size: glm::Vec2) {
+    fn draw_gui(&mut self, meshes: &[ClippedPrimitive], screen_size: glm::Vec2) {
+        // activate the texture. 31 is arbritrary, just needs to be
+        // consistent between the shader and the texture that is
+        // activated.
         self.shader.set_int("egui_texture\0", 31);
-        let texture = self.texture.as_mut().unwrap();
-        // egui 0.16 onward switches to font_image() and FontImage
-        // instead of using texture() and Texture
-        #[cfg(any(feature = "egui_0_14", feature = "egui_0_15"))]
-        {
-            texture.update_from_egui(&self.egui_ctx.texture());
+        unsafe {
+            gl::ActiveTexture(gl::TEXTURE31);
         }
-        #[cfg(not(any(feature = "egui_0_14", feature = "egui_0_15")))]
-        {
-            texture.update_from_egui(&self.egui_ctx.font_image());
-        }
-        texture.activate(31);
 
-        let mut draw_data = ClippedMeshDrawData::new(
+        let mut draw_data = ClippedPrimitiveDrawData::new(
             &mut self.imm,
             &self.shader,
+            &mut self.textures,
             screen_size,
-            texture.get_gl_tex(),
         );
         meshes
             .iter()
@@ -311,46 +314,56 @@ impl EguiBackend {
     }
 
     /// Get the egui context.
-    pub fn get_egui_ctx(&self) -> &egui::CtxRef {
+    pub fn get_egui_ctx(&self) -> &egui::Context {
         &self.egui_ctx
     }
 }
 
-struct ClippedMeshDrawData<'a> {
+struct ClippedPrimitiveDrawData<'a> {
     imm: &'a mut GPUImmediate,
 
-    /// needs a 2d shader with position, uv, and color defined per vertex
+    /// Needs a 2d shader with position, uv, and color defined per
+    /// vertex
     shader: &'a Shader,
+    /// Textures used by egui.
+    textures: &'a mut AHashMap<egui::TextureId, TextureRGBA8>,
 
     screen_size: glm::Vec2,
-    egui_texture_gl_tex: gl::types::GLuint,
 }
 
-impl<'a> ClippedMeshDrawData<'a> {
+impl<'a> ClippedPrimitiveDrawData<'a> {
     pub fn new(
         imm: &'a mut GPUImmediate,
         shader: &'a Shader,
+        textures: &'a mut AHashMap<egui::TextureId, TextureRGBA8>,
         screen_size: glm::Vec2,
-        egui_texture_gl_tex: gl::types::GLuint,
     ) -> Self {
         Self {
             imm,
             shader,
+            textures,
             screen_size,
-            egui_texture_gl_tex,
         }
     }
 }
 
-impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
-    fn draw(&self, extra_data: &mut ClippedMeshDrawData) -> Result<(), ()> {
-        let rect = &self.0;
-        let mesh = &self.1;
+impl Drawable<ClippedPrimitiveDrawData<'_>, ()> for ClippedPrimitive {
+    fn draw(&self, extra_data: &mut ClippedPrimitiveDrawData) -> Result<(), ()> {
+        let rect = &self.clip_rect;
+        let mesh = match &self.primitive {
+            egui::epaint::Primitive::Mesh(mesh) => mesh,
+            egui::epaint::Primitive::Callback(_) => {
+                todo!("Need to add support for callback primitive")
+            }
+        };
 
         match mesh.texture_id {
-            egui::TextureId::Egui => unsafe {
-                gl::BindTexture(gl::TEXTURE_2D, extra_data.egui_texture_gl_tex);
-            },
+            egui::TextureId::Managed(_) => {
+                let texture = &mut extra_data.textures.get_mut(&mesh.texture_id).unwrap();
+                unsafe {
+                    gl::BindTexture(gl::TEXTURE_2D, texture.get_gl_tex());
+                }
+            }
             egui::TextureId::User(gl_tex) => unsafe {
                 gl::BindTexture(gl::TEXTURE_2D, gl_tex.try_into().unwrap());
             },
@@ -481,4 +494,14 @@ impl Drawable<ClippedMeshDrawData<'_>, ()> for ClippedMesh {
 
         Ok(())
     }
+}
+
+/// Output of [`EguiBackend::end_frame()`].
+pub struct Output {
+    /// egui's [`PlatformOutput`].
+    pub platform_output: PlatformOutput,
+    /// Need to repaint the immediate next frame, do not wait for an
+    /// event to take place. See [`FullOutput::needs_repaint`] for
+    /// more details.
+    pub needs_repaint: bool,
 }

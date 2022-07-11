@@ -7,9 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dep_egui_0_16 = { version = "0.16", package = "egui", optional = true }
-dep_egui_0_15 = { version = "0.15", package = "egui", optional = true }
-dep_egui_0_14 = { version = "0.14", package = "egui", optional = true }
+egui = { version = "0.18" }
 glfw = "0.41"
 gl = "0.14"
 nalgebra-glm = "0.13"
@@ -19,9 +17,3 @@ copypasta-ext = "0.3"
 
 [[example]]
 name = "simple_gui"
-
-[features]
-default = ["egui_0_16"]
-egui_0_16 = ["dep_egui_0_16"]
-egui_0_15 = ["dep_egui_0_15"]
-egui_0_14 = ["dep_egui_0_14"]
