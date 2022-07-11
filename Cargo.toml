@@ -14,6 +14,10 @@ nalgebra-glm = "0.13"
 
 [dev-dependencies]
 copypasta-ext = "0.3"
+egui_demo_lib = "0.18.0"
 
 [[example]]
 name = "simple_gui"
+
+[[example]]
+name = "demo_app"
