@@ -189,7 +189,22 @@ impl Input {
             glfw::WindowEvent::Focus(_) => None,
             glfw::WindowEvent::CharModifiers(_, _) => None,
             glfw::WindowEvent::Close => None,
-            _ => todo!("handle the event {:?}", event),
+            glfw::WindowEvent::Size(_, _) => None,
+            glfw::WindowEvent::Iconify(_) => None,
+            glfw::WindowEvent::FileDrop(paths) => {
+                self.raw_input
+                    .dropped_files
+                    .extend(paths.iter().map(|path| egui::DroppedFile {
+                        path: Some(path.to_path_buf()),
+                        ..Default::default()
+                    }));
+                None
+            }
+            glfw::WindowEvent::Maximize(_) => None,
+            glfw::WindowEvent::ContentScale(_, _) => {
+                // TODO: this might affect the pixels per point
+                None
+            }
         };
         if let Some(raw_event) = raw_event {
             self.raw_input.events.push(raw_event);
