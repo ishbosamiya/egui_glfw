@@ -196,7 +196,25 @@ impl TextureRGBA8 {
 
     fn new_texture_to_gl(&self) {
         assert_eq!(self.pixels.len(), self.width * self.height);
+
+        let pixel_size = 4 * 1;
+
+        // set the row alignment based on the pixel size and the
+        // number of rows
+        let row_length_in_bytes = pixel_size * self.width;
+        let unpack_alignment = if row_length_in_bytes % 8 == 0 {
+            8
+        } else if row_length_in_bytes % 4 == 0 {
+            4
+        } else if row_length_in_bytes % 2 == 0 {
+            2
+        } else {
+            1
+        };
+
         unsafe {
+            gl::PixelStorei(gl::UNPACK_ALIGNMENT, unpack_alignment);
+
             gl::BindTexture(gl::TEXTURE_2D, self.gl_tex.unwrap());
 
             gl::TexImage2D(
