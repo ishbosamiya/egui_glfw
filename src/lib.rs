@@ -5,7 +5,7 @@ mod shader;
 mod texture;
 mod util;
 
-use std::{convert::TryInto, usize};
+use std::{convert::TryInto, time::Duration, usize};
 
 use drawable::Drawable;
 use gpu_immediate::{GPUImmediate, GPUVertCompType, GPUVertFetchMode};
@@ -203,7 +203,7 @@ impl EguiBackend {
 
         let output = Output {
             platform_output: full_output.platform_output,
-            needs_repaint: full_output.needs_repaint,
+            repaint_after: full_output.repaint_after,
         };
         let shapes = full_output.shapes;
 
@@ -515,8 +515,8 @@ impl Drawable<ClippedPrimitiveDrawData<'_>, ()> for ClippedPrimitive {
 pub struct Output {
     /// egui's [`PlatformOutput`].
     pub platform_output: PlatformOutput,
-    /// Need to repaint the immediate next frame, do not wait for an
-    /// event to take place. See [`FullOutput::needs_repaint`] for
+    /// If `Duration::is_zero()`, egui is requesting immediate repaint
+    /// (i.e. on the next frame).See [`FullOutput::needs_repaint`] for
     /// more details.
-    pub needs_repaint: bool,
+    pub repaint_after: Duration,
 }

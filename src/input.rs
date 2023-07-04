@@ -154,6 +154,7 @@ impl Input {
                 Self::get_key(key).map(|key| Event::Key {
                     key,
                     pressed,
+                    repeat: false,
                     modifiers: Self::get_modifier(modifiers),
                 })
             }

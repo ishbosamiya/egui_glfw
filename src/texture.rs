@@ -54,7 +54,7 @@ impl TextureRGBA8 {
                     })
                     .collect(),
                 egui::ImageData::Font(image) => image
-                    .srgba_pixels(1.0)
+                    .srgba_pixels(None)
                     .map(|pixel| (pixel.r(), pixel.g(), pixel.b(), pixel.a()))
                     .collect::<Vec<_>>()
                     .chunks(image.width())
