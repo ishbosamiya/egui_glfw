@@ -1,6 +1,6 @@
 [package]
 name = "egui_glfw"
-version = "0.3.2+dev"
+version = "0.3.3"
 authors = ["ishbosamiya <ishbosamiya@gmail.com>"]
 edition = "2018"
 
