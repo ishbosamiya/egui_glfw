@@ -155,7 +155,7 @@ impl EguiBackend {
     /// clipboard using the crate `copypasta_ext`.
     ///
     /// ```no_run
-    /// let output = egui.end_frame(glm::vec2(width as _, height as _));
+    /// let output = egui.end_frame((width as _, height as _));
     ///
     /// if !output.platform_output.copied_text.is_empty() {
     ///     match copypasta_ext::try_context() {
@@ -168,7 +168,7 @@ impl EguiBackend {
     ///     }
     /// }
     /// ```
-    pub fn end_frame(&mut self, screen_size: glm::Vec2) -> Output {
+    pub fn end_frame(&mut self, screen_size: (f32, f32)) -> Output {
         let full_output = self.egui_ctx.end_frame();
 
         // TODO: need to handle full_output.textures_delta
@@ -214,14 +214,14 @@ impl EguiBackend {
             "projection\0",
             &glm::ortho(
                 0.0,
-                screen_size[0] as _,
+                screen_size.0 as _,
                 0.0,
-                screen_size[1] as _,
+                screen_size.1 as _,
                 0.1,
                 1000.0,
             ),
         );
-        self.draw_gui(&meshes, screen_size);
+        self.draw_gui(&meshes, glm::vec2(screen_size.0, screen_size.1));
 
         output
     }
