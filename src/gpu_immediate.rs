@@ -200,10 +200,14 @@ impl GPUVertFormat {
     }
 
     fn pack(&mut self) {
-        // For now, attributes are packed in the order they were added, making sure each attribute is naturally aligned (add padding where necessary). Later we can implement more efficient packing w/ reordering (keep attribute ID order, adjust their offsets to reorder in buffer).
+        // For now, attributes are packed in the order they were
+        // added, making sure each attribute is naturally aligned (add
+        // padding where necessary). Later we can implement more
+        // efficient packing w/ reordering (keep attribute ID order,
+        // adjust their offsets to reorder in buffer).
         let mut offset: usize;
         {
-            let mut a0 = &mut self.attrs[0];
+            let a0 = &mut self.attrs[0];
             a0.offset = 0;
             offset = a0.sz.into();
         }
@@ -250,7 +254,9 @@ impl GPUVertFormat {
         self.attrs.push(attr);
 
         self.attrs.len() - 1
-        // TODO(ish): this is returning a value within self.attrs which doesn't have to correspond with the value in the vertex shader. Need to figure out what is happening
+        // TODO(ish): this is returning a value within self.attrs
+        // which doesn't have to correspond with the value in the
+        // vertex shader. Need to figure out what is happening
     }
 
     pub fn clear(&mut self) {

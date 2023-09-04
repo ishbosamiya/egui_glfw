@@ -97,7 +97,7 @@ impl TextureRGBA8 {
             .skip(start_pos[1])
             .enumerate()
             .map_while(|(y, (row_index, row))| {
-                (row_index < (start_pos[1] + delta.image.height())).then(|| (row, y))
+                (row_index < (start_pos[1] + delta.image.height())).then_some((row, y))
             })
             .for_each(|(row, y)| {
                 row.iter_mut()
@@ -105,7 +105,7 @@ impl TextureRGBA8 {
                     .skip(start_pos[0])
                     .enumerate()
                     .map_while(|(x, (column_index, pixel))| {
-                        (column_index < (start_pos[0] + delta.image.width())).then(|| (pixel, x))
+                        (column_index < (start_pos[0] + delta.image.width())).then_some((pixel, x))
                     })
                     .for_each(|(pixel, x)| {
                         match &delta.image {
@@ -197,7 +197,7 @@ impl TextureRGBA8 {
     fn new_texture_to_gl(&self) {
         assert_eq!(self.pixels.len(), self.width * self.height);
 
-        let pixel_size = 4 * 1;
+        let pixel_size = 4;
 
         // set the row alignment based on the pixel size and the
         // number of rows
