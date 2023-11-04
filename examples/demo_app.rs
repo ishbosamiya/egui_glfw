@@ -3,7 +3,7 @@ use glfw::{self, Context};
 use egui_glfw::{egui, EguiBackend};
 
 fn main() {
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+    let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
 
     // set to opengl 3.3 or higher
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
