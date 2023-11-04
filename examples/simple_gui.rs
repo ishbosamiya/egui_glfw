@@ -213,10 +213,10 @@ fn main() {
                 );
             }
 
-            ui.image(
+            ui.image((
                 egui::TextureId::User(texture.get_gl_tex().into()),
-                &[texture.get_width() as _, texture.get_height() as _],
-            );
+                egui::vec2(texture.get_width() as _, texture.get_height() as _),
+            ));
         });
 
         let (width, height) = window.get_framebuffer_size();

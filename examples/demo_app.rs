@@ -44,6 +44,8 @@ fn main() {
 
     let mut egui = EguiBackend::new(&mut window, &mut glfw);
 
+    egui_extras::install_image_loaders(egui.get_egui_ctx());
+
     let mut inspection_window = true;
     let mut demo_windows = egui_demo_lib::DemoWindows::default();
     let mut color_test = egui_demo_lib::ColorTest::default();
