@@ -32,8 +32,10 @@ fn main() {
     // load opengl symbols
     gl::load_with(|symbol| window.get_proc_address(symbol));
 
-    // enable vsync
-    glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
+    // disable vsync
+    glfw.set_swap_interval(glfw::SwapInterval::None);
+
+    let mut fps_counter = FpsCounter::new();
 
     // enable and disable certain opengl features
     unsafe {
@@ -65,6 +67,8 @@ fn main() {
     let mut text_input_test = String::from("hello");
 
     while !window.should_close() {
+        fps_counter.new_frame();
+
         glfw.poll_events();
 
         glfw::flush_messages(&events).for_each(|(_, event)| {
@@ -121,6 +125,8 @@ fn main() {
                 if ui.button("Quit").clicked() {
                     window.set_should_close(true);
                 }
+
+                ui.label(format!("FPS: {}", Fps::from(&fps_counter.stats().current)));
 
                 egui::ComboBox::from_label("Version")
                     .width(150.0)
@@ -286,4 +292,100 @@ fn generate_texture(
             })
             .collect(),
     )
+}
+
+/// Frames per second.
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct Fps(pub f32);
+
+impl Fps {
+    /// Create a new [`Fps`] from the given frame time.
+    pub fn from_frame_time(frame_time: &std::time::Duration) -> Self {
+        Self::from(frame_time)
+    }
+}
+
+impl std::fmt::Display for Fps {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.2}", self.0)
+    }
+}
+
+impl From<&std::time::Duration> for Fps {
+    fn from(frame_time: &std::time::Duration) -> Self {
+        Self(1.0 / frame_time.as_secs_f32())
+    }
+}
+
+/// Frames per second counter.
+///
+/// # Note
+///
+/// [`FpsCounter::new_frame()`] must be called every frame for the
+/// counter to work properly. It is the only way to tell the counter
+/// that a new frame has started.
+pub struct FpsCounter {
+    /// Start time of the frame currently active.
+    frame_start: Option<std::time::Instant>,
+
+    /// Frame time.
+    frame_time: Option<std::time::Duration>,
+
+    /// [`Stats`].
+    stats: FpsStats,
+}
+
+impl FpsCounter {
+    /// Create a new [`Fps`] counter.
+    pub fn new() -> Self {
+        Self {
+            frame_start: None,
+            stats: FpsStats::invalid(),
+            frame_time: None,
+        }
+    }
+
+    /// State that a new frame has started.
+    pub fn new_frame(&mut self) {
+        let new_frame_start = std::time::Instant::now();
+        self.frame_time = self.frame_start.as_ref().map(|fs| new_frame_start - *fs);
+
+        if let Some(frame_time) = self.frame_time {
+            self.stats.update(frame_time)
+        }
+
+        self.frame_start = Some(new_frame_start);
+    }
+
+    /// Get the [`FpsStats`].
+    pub fn stats(&self) -> &FpsStats {
+        &self.stats
+    }
+}
+
+impl Default for FpsCounter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// FPS stats.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FpsStats {
+    /// Current frame time.
+    pub current: std::time::Duration,
+}
+
+impl FpsStats {
+    /// Create new invalid [`Stats`].
+    fn invalid() -> Self {
+        Self {
+            current: std::time::Duration::MAX,
+        }
+    }
+
+    /// Update the stats.
+    fn update(&mut self, frame_time: std::time::Duration) {
+        self.current = frame_time;
+    }
 }
