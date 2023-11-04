@@ -37,6 +37,7 @@ pub struct EguiBackend {
     imm: GPUImmediate,
     textures: AHashMap<egui::TextureId, TextureRGBA8>,
     shader: Shader,
+    start_time: std::time::Instant,
 }
 
 fn get_pixels_per_point(window: &glfw::Window, glfw: &mut glfw::Glfw) -> f32 {
@@ -119,6 +120,7 @@ impl EguiBackend {
             input,
             textures: AHashMap::new(),
             shader,
+            start_time: std::time::Instant::now(),
         }
     }
 
@@ -127,8 +129,11 @@ impl EguiBackend {
     pub fn begin_frame(&mut self, window: &glfw::Window, glfw: &mut glfw::Glfw) {
         let pixels_per_point = get_pixels_per_point(window, glfw);
         self.input.set_pixels_per_point(pixels_per_point);
+        let time = self.start_time.elapsed().as_secs_f64();
         unsafe {
-            self.get_raw_input().max_texture_side = Some(gl::MAX_TEXTURE_SIZE.try_into().unwrap());
+            let raw_input = self.get_raw_input();
+            raw_input.max_texture_side = Some(gl::MAX_TEXTURE_SIZE.try_into().unwrap());
+            raw_input.time = Some(time);
         }
         self.egui_ctx.begin_frame(self.input.take());
     }
