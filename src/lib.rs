@@ -100,11 +100,8 @@ impl EguiBackend {
         // load opengl symbols
         gl::load_with(|symbol| window.get_proc_address(symbol));
 
-        // TODO: need to set the pixels per point based on the content
-        // scale of the monitor.
-        //
-        // let pixels_per_point = get_monitor_true_pixels_per_point(window, glfw);
-        let pixels_per_point = 1.0;
+        // taking the x scale because egui supports only one value
+        let pixels_per_point = window.get_content_scale().0;
         let mut input = Input::new(pixels_per_point);
         input.set_screen_rect(window, pixels_per_point);
 

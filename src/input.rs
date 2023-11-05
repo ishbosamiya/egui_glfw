@@ -16,7 +16,6 @@ impl Input {
     }
 
     /// Set the pixels per point.
-    #[allow(dead_code)]
     pub fn set_pixels_per_point(&mut self, pixels_per_point: f32) {
         self.raw_input.pixels_per_point = Some(pixels_per_point);
     }
@@ -217,8 +216,10 @@ impl Input {
                 None
             }
             glfw::WindowEvent::Maximize(_) => None,
-            glfw::WindowEvent::ContentScale(_, _) => {
-                // TODO: this might affect the pixels per point
+            glfw::WindowEvent::ContentScale(x, _y) => {
+                // taking the x scale because egui supports only one
+                // value
+                self.set_pixels_per_point(*x);
                 None
             }
         };
