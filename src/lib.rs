@@ -221,7 +221,7 @@ impl EguiBackend {
             screen_size_in_pixels.1 / pixels_per_point,
         );
         self.shader
-            .set_vec2("screen_size\0", &screen_size_in_points);
+            .set_vec2("u_screen_size_in_points\0", &screen_size_in_points);
         self.draw_gui(
             &meshes,
             pixels_per_point,
@@ -241,7 +241,7 @@ impl EguiBackend {
         // activate the texture. 31 is arbritrary, just needs to be
         // consistent between the shader and the texture that is
         // activated.
-        self.shader.set_int("egui_texture\0", 31);
+        self.shader.set_int("u_texture\0", 31);
         unsafe {
             gl::ActiveTexture(gl::TEXTURE31);
         }
@@ -349,7 +349,7 @@ impl EguiBackend {
 struct ClippedPrimitiveDrawData<'a> {
     imm: &'a mut GPUImmediate,
 
-    /// Needs a 2d shader with position, uv, and color defined per
+    /// Needs a 2d shader with position, uv, and colour defined per
     /// vertex
     shader: &'a Shader,
     /// Textures used by egui.
@@ -412,19 +412,19 @@ impl Drawable<ClippedPrimitiveDrawData<'_>, ()> for ClippedPrimitive {
 
         let format = imm.get_cleared_vertex_format();
         let pos_attr = format.add_attribute(
-            "in_pos\0".to_string(),
+            "v_pos\0".to_string(),
             GPUVertCompType::F32,
             2,
             GPUVertFetchMode::Float,
         );
         let uv_attr = format.add_attribute(
-            "in_uv\0".to_string(),
+            "v_uv\0".to_string(),
             GPUVertCompType::F32,
             2,
             GPUVertFetchMode::Float,
         );
-        let color_attr = format.add_attribute(
-            "in_color\0".to_string(),
+        let colour_attr = format.add_attribute(
+            "v_colour\0".to_string(),
             GPUVertCompType::F32,
             4,
             GPUVertFetchMode::Float,
@@ -446,9 +446,9 @@ impl Drawable<ClippedPrimitiveDrawData<'_>, ()> for ClippedPrimitive {
             gl::Disable(gl::DEPTH_TEST);
             gl::Enable(gl::SCISSOR_TEST);
             gl::Enable(gl::BLEND);
-            //Let OpenGL know we are dealing with SRGB colors so that it
+            //Let OpenGL know we are dealing with SRGB colours so that it
             //can do the blending correctly. Not setting the framebuffer
-            //leads to darkened, oversaturated colors.
+            //leads to darkened, oversaturated colours.
             gl::Enable(gl::FRAMEBUFFER_SRGB);
             gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
         }
@@ -486,7 +486,7 @@ impl Drawable<ClippedPrimitiveDrawData<'_>, ()> for ClippedPrimitive {
             // as top right
             imm.attr_2f(uv_attr, vert.uv.x, 1.0 - vert.uv.y);
             imm.attr_4f(
-                color_attr,
+                colour_attr,
                 vert.color.r().into(),
                 vert.color.g().into(),
                 vert.color.b().into(),

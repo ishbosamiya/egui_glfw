@@ -1,13 +1,13 @@
 #version 330 core
 
-uniform vec2 screen_size; // (width, height)
+uniform vec2 u_screen_size_in_points; // (width, height)
 
-in vec2 in_pos;
-in vec2 in_uv;
-in vec4 in_color;
+in vec2 v_pos;
+in vec2 v_uv;
+in vec4 v_colour;
 
-out vec4 finalColor;
-out vec2 v_uv;
+out vec2 f_uv;
+out vec4 f_colour;
 
 // 0-1 linear  from  0-255 sRGB
 // from egui_glium
@@ -24,8 +24,9 @@ vec4 linear_from_srgba(vec4 srgba) {
 
 void main()
 {
-  vec2 pos = vec2(2.0 * in_pos.x / screen_size.x - 1.0, 1.0 - 2.0 * in_pos.y / screen_size.y);
+  vec2 pos = vec2(2.0 * v_pos.x / u_screen_size_in_points.x - 1.0,
+                  1.0 - 2.0 * v_pos.y / u_screen_size_in_points.y);
   gl_Position = vec4(pos, 0.01, 1.0);
-  finalColor = linear_from_srgba(in_color);
-  v_uv = in_uv;
+  f_uv = v_uv;
+  f_colour = linear_from_srgba(v_colour);
 }

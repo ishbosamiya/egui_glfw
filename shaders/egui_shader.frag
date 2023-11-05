@@ -1,12 +1,13 @@
 #version 330 core
 
-uniform sampler2D egui_texture;
+uniform sampler2D u_texture;
 
-in vec4 finalColor;
-in vec2 v_uv;
-out vec4 fragColor;
+in vec2 f_uv;
+in vec4 f_colour;
+
+out vec4 o_frag_colour;
 
 void main()
 {
-  fragColor = finalColor * texture(egui_texture, v_uv);
+  o_frag_colour = f_colour * texture(u_texture, f_uv);
 }
