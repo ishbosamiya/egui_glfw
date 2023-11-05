@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{borrow::Cow, convert::TryInto};
 
 /// GPU Texture RGBA8. Each pixel has 4 channels, [`u8`] each.
 pub struct TextureRGBA8 {
@@ -74,8 +74,6 @@ impl TextureRGBA8 {
             return;
         }
 
-        let gamma = 1.0;
-
         // TODO: need to optimize this, shouldn't delete the entire
         // texture from the GPU and resend everything. It does not
         // take advantage of the delta that is provided.
@@ -85,6 +83,13 @@ impl TextureRGBA8 {
         if self.gl_tex.is_some() {
             self.cleanup_opengl();
         }
+
+        let (delta_image_pixels, delta_image_width) = match &delta.image {
+            egui::ImageData::Color(image) => {
+                (Cow::Borrowed(image.pixels.as_slice()), image.width())
+            }
+            egui::ImageData::Font(image) => (image.srgba_pixels(None).collect(), image.width()),
+        };
 
         // the position provided will be from top left as (0, 0) but
         // Self requires (0, 0) as bottom left, so need to update by
@@ -108,26 +113,8 @@ impl TextureRGBA8 {
                         (column_index < (start_pos[0] + delta.image.width())).then_some((pixel, x))
                     })
                     .for_each(|(pixel, x)| {
-                        match &delta.image {
-                            egui::ImageData::Color(image) => {
-                                let new_pixel = image.pixels[y * image.width() + x];
-                                *pixel =
-                                    (new_pixel.r(), new_pixel.g(), new_pixel.b(), new_pixel.a())
-                            }
-                            egui::ImageData::Font(image) => {
-                                let new_pixel = image.pixels[y * image.width() + x];
-
-                                // directly from srgba_pixel()
-                                //
-                                // This is arbitrarily chosen to make text look as good as possible.
-                                // In particular, it looks good with gamma=1 and the default eframe backend,
-                                // which uses linear blending.
-                                // See https://github.com/emilk/egui/issues/1410
-                                let a = fast_round(new_pixel.powf(gamma / 2.2) * 255.0);
-
-                                *pixel = (a, a, a, a)
-                            }
-                        }
+                        let new_pixel = delta_image_pixels[y * delta_image_width + x];
+                        *pixel = (new_pixel.r(), new_pixel.g(), new_pixel.b(), new_pixel.a())
                     });
             });
     }
@@ -300,9 +287,4 @@ impl Drop for TextureRGBA8 {
             self.cleanup_opengl();
         }
     }
-}
-
-/// Fast round from egui.
-fn fast_round(r: f32) -> u8 {
-    (r + 0.5).floor() as _ // rust does a saturating cast since 1.45
 }
