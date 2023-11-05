@@ -6,6 +6,7 @@ pub struct Input {
 }
 
 impl Input {
+    /// Create a new [`Input`] with the given pixels per point.
     pub fn new(pixels_per_point: f32) -> Self {
         let raw_input = RawInput {
             pixels_per_point: Some(pixels_per_point),
@@ -14,6 +15,8 @@ impl Input {
         Self { raw_input }
     }
 
+    /// Set the pixels per point.
+    #[allow(dead_code)]
     pub fn set_pixels_per_point(&mut self, pixels_per_point: f32) {
         self.raw_input.pixels_per_point = Some(pixels_per_point);
     }
@@ -55,9 +58,12 @@ impl Input {
     }
 
     #[inline]
-    fn get_cur_pos(window: &glfw::Window) -> Pos2 {
+    fn get_cur_pos(window: &glfw::Window, pixels_per_point: f32) -> Pos2 {
         let pos = window.get_cursor_pos();
-        egui::pos2(pos.0 as _, pos.1 as _)
+        egui::pos2(
+            pos.0 as f32 / pixels_per_point,
+            pos.1 as f32 / pixels_per_point,
+        )
     }
 
     #[inline]
@@ -120,18 +126,24 @@ impl Input {
         })
     }
 
-    pub fn handle_event(&mut self, event: &glfw::WindowEvent, window: &glfw::Window) {
+    pub fn handle_event(
+        &mut self,
+        event: &glfw::WindowEvent,
+        window: &glfw::Window,
+        pixels_per_point: f32,
+    ) {
         let raw_event = match event {
-            glfw::WindowEvent::CursorPos(x, y) => {
-                Some(Event::PointerMoved(egui::pos2(*x as _, *y as _)))
-            }
+            glfw::WindowEvent::CursorPos(x, y) => Some(Event::PointerMoved(egui::pos2(
+                *x as f32 / pixels_per_point,
+                *y as f32 / pixels_per_point,
+            ))),
             glfw::WindowEvent::MouseButton(button, action, modifier) => {
                 let button = Self::button_type(button);
                 match button {
                     Some(button) => {
                         let pressed = Self::is_pressed(action);
                         Some(Event::PointerButton {
-                            pos: Self::get_cur_pos(window),
+                            pos: Self::get_cur_pos(window, pixels_per_point),
                             button,
                             pressed,
                             modifiers: Self::get_modifier(modifier),
@@ -174,7 +186,10 @@ impl Input {
                 unsafe {
                     gl::Viewport(0, 0, *width, *height);
                 }
-                self.set_screen_rect_from_size(egui::vec2(*width as _, *height as _));
+                self.set_screen_rect_from_size(
+                    egui::vec2(*width as _, *height as _),
+                    pixels_per_point,
+                );
                 None
             }
             glfw::WindowEvent::CursorEnter(enter) => {
@@ -221,16 +236,25 @@ impl Input {
         self.raw_input.events.push(event);
     }
 
-    fn set_screen_rect_from_size(&mut self, screen_size: egui::Vec2) {
-        // TODO(ish): will need to divide with pixels per point most probably
-        self.raw_input.screen_rect =
-            Some(egui::Rect::from_min_size(Default::default(), screen_size));
+    /// Set the screen rect from the given screen size in pixels.
+    fn set_screen_rect_from_size(
+        &mut self,
+        screen_size_in_pixels: egui::Vec2,
+        pixels_per_point: f32,
+    ) {
+        self.raw_input.screen_rect = Some(egui::Rect::from_min_size(
+            Default::default(),
+            screen_size_in_pixels / pixels_per_point,
+        ));
     }
 
-    pub fn set_screen_rect(&mut self, window: &glfw::Window) {
-        let screen_size = window.get_framebuffer_size();
-        let screen_size = egui::vec2(screen_size.0 as _, screen_size.1 as _);
-        self.set_screen_rect_from_size(screen_size);
+    /// Set the screen rect from the given window and pixels per
+    /// point.
+    pub fn set_screen_rect(&mut self, window: &glfw::Window, pixels_per_point: f32) {
+        let screen_size_in_pixels = window.get_framebuffer_size();
+        let screen_size_in_pixels =
+            egui::vec2(screen_size_in_pixels.0 as _, screen_size_in_pixels.1 as _);
+        self.set_screen_rect_from_size(screen_size_in_pixels, pixels_per_point);
     }
 
     /// Get the internal raw input state mutably.

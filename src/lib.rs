@@ -17,14 +17,16 @@ pub use egui;
 use egui::{epaint::ahash::AHashMap, ClippedPrimitive, PlatformOutput};
 use nalgebra_glm as glm;
 
+/// Monitor data.
 #[derive(Debug)]
-struct MonitorData {
+pub struct MonitorData {
     pos: (u32, u32),
     size: (u32, u32), // width, height in pixels
 }
 
 impl MonitorData {
-    fn new(pos: (u32, u32), size: (u32, u32)) -> Self {
+    /// Create new [`MonitorData`].
+    pub fn new(pos: (u32, u32), size: (u32, u32)) -> Self {
         Self { pos, size }
     }
 }
@@ -40,7 +42,12 @@ pub struct EguiBackend {
     start_time: std::time::Instant,
 }
 
-fn get_pixels_per_point(window: &glfw::Window, glfw: &mut glfw::Glfw) -> f32 {
+/// Get the true pixels per point of the monitor that the window in
+/// is.
+///
+/// This can differ from the content scale.
+#[allow(dead_code)]
+fn get_monitor_true_pixels_per_point(window: &glfw::Window, glfw: &mut glfw::Glfw) -> f32 {
     // reference:
     // https://developer.apple.com/documentation/appkit/nsscreen/1388375-userspacescalefactor
     // pixels per point is the (pixels per inch of the display) / 72.0
@@ -89,20 +96,17 @@ fn get_pixels_per_point(window: &glfw::Window, glfw: &mut glfw::Glfw) -> f32 {
 
 impl EguiBackend {
     /// Create a new egui backend utilizing glfw as the backend.
-    pub fn new(window: &mut glfw::Window, glfw: &mut glfw::Glfw) -> Self {
-        // TODO(ish): need to figure out how to choose the correct
-        // monitor based on the where the window is, for now choosing
-        // the primary monitor to set the pixels per inch value
-        // TODO(ish): need to figure out whether to use x axis or y
-        // axis or the diagonal for calculating the pixels per inch
-        // value
-
+    pub fn new(window: &mut glfw::Window, _glfw: &mut glfw::Glfw) -> Self {
         // load opengl symbols
         gl::load_with(|symbol| window.get_proc_address(symbol));
 
-        let pixels_per_point = get_pixels_per_point(window, glfw);
+        // TODO: need to set the pixels per point based on the content
+        // scale of the monitor.
+        //
+        // let pixels_per_point = get_monitor_true_pixels_per_point(window, glfw);
+        let pixels_per_point = 1.0;
         let mut input = Input::new(pixels_per_point);
-        input.set_screen_rect(window);
+        input.set_screen_rect(window, pixels_per_point);
 
         let egui_shader_vert_code = include_str!("../shaders/egui_shader.vert");
         let egui_shader_frag_code = include_str!("../shaders/egui_shader.frag");
@@ -126,9 +130,7 @@ impl EguiBackend {
 
     /// Start the egui frame. This sets up the necessary data for egui
     /// to work.
-    pub fn begin_frame(&mut self, window: &glfw::Window, glfw: &mut glfw::Glfw) {
-        let pixels_per_point = get_pixels_per_point(window, glfw);
-        self.input.set_pixels_per_point(pixels_per_point);
+    pub fn begin_frame(&mut self, _window: &glfw::Window, _glfw: &mut glfw::Glfw) {
         let time = self.start_time.elapsed().as_secs_f64();
         unsafe {
             let raw_input = self.get_raw_input();
@@ -173,7 +175,7 @@ impl EguiBackend {
     ///     }
     /// }
     /// ```
-    pub fn end_frame(&mut self, screen_size: (f32, f32)) -> Output {
+    pub fn end_frame(&mut self, screen_size_in_pixels: (f32, f32)) -> Output {
         let full_output = self.egui_ctx.end_frame();
 
         // TODO: need to handle full_output.textures_delta
@@ -214,25 +216,33 @@ impl EguiBackend {
 
         let meshes = self.egui_ctx.tessellate(shapes);
 
+        let pixels_per_point = self.egui_ctx.pixels_per_point();
+
         self.shader.use_shader();
-        self.shader.set_mat4(
-            "projection\0",
-            &glm::ortho(
-                0.0,
-                screen_size.0 as _,
-                0.0,
-                screen_size.1 as _,
-                0.1,
-                1000.0,
-            ),
+        self.shader
+            .set_mat4("projection\0", &glm::ortho(0.0, 1.0, 0.0, 1.0, 0.1, 1000.0));
+        let screen_size_in_points = glm::vec2(
+            screen_size_in_pixels.0 / pixels_per_point,
+            screen_size_in_pixels.1 / pixels_per_point,
         );
-        self.draw_gui(&meshes, glm::vec2(screen_size.0, screen_size.1));
+        self.shader
+            .set_vec2("screen_size\0", &screen_size_in_points);
+        self.draw_gui(
+            &meshes,
+            pixels_per_point,
+            glm::vec2(screen_size_in_pixels.0, screen_size_in_pixels.1),
+        );
 
         output
     }
 
     /// Draw the gui by processing the provided `meshes`.
-    fn draw_gui(&mut self, meshes: &[ClippedPrimitive], screen_size: glm::Vec2) {
+    fn draw_gui(
+        &mut self,
+        meshes: &[ClippedPrimitive],
+        pixels_per_point: f32,
+        screen_size_in_pixels: glm::Vec2,
+    ) {
         // activate the texture. 31 is arbritrary, just needs to be
         // consistent between the shader and the texture that is
         // activated.
@@ -245,7 +255,8 @@ impl EguiBackend {
             &mut self.imm,
             &self.shader,
             &mut self.textures,
-            screen_size,
+            pixels_per_point,
+            screen_size_in_pixels,
         );
         meshes
             .iter()
@@ -258,7 +269,8 @@ impl EguiBackend {
     /// Also look at [`Self::push_event()`] for handling other egui
     /// events that are currently unsupported.
     pub fn handle_event(&mut self, event: &glfw::WindowEvent, window: &glfw::Window) {
-        self.input.handle_event(event, window);
+        self.input
+            .handle_event(event, window, self.egui_ctx.pixels_per_point());
     }
 
     /// Push a [`egui::Event`] to egui. This is useful when a certain
@@ -348,7 +360,11 @@ struct ClippedPrimitiveDrawData<'a> {
     /// Textures used by egui.
     textures: &'a mut AHashMap<egui::TextureId, TextureRGBA8>,
 
-    screen_size: glm::Vec2,
+    /// Pixels per point.
+    pixels_per_point: f32,
+
+    /// Screen size in pixels.
+    screen_size_in_pixels: glm::Vec2,
 }
 
 impl<'a> ClippedPrimitiveDrawData<'a> {
@@ -356,13 +372,15 @@ impl<'a> ClippedPrimitiveDrawData<'a> {
         imm: &'a mut GPUImmediate,
         shader: &'a Shader,
         textures: &'a mut AHashMap<egui::TextureId, TextureRGBA8>,
-        screen_size: glm::Vec2,
+        pixels_per_point: f32,
+        screen_size_in_pixels: glm::Vec2,
     ) -> Self {
         Self {
             imm,
             shader,
             textures,
-            screen_size,
+            pixels_per_point,
+            screen_size_in_pixels,
         }
     }
 }
@@ -395,9 +413,7 @@ impl Drawable<ClippedPrimitiveDrawData<'_>, ()> for ClippedPrimitive {
         }
         let imm = &mut extra_data.imm;
         let shader = extra_data.shader;
-        let screen_size = extra_data.screen_size;
         shader.use_shader();
-        shader.set_vec2("screen_size\0", &screen_size);
 
         let format = imm.get_cleared_vertex_format();
         let pos_attr = format.add_attribute(
@@ -443,14 +459,14 @@ impl Drawable<ClippedPrimitiveDrawData<'_>, ()> for ClippedPrimitive {
         }
 
         //scissor viewport since these are clipped meshes
-        let clip_min_x = rect.min.x;
-        let clip_min_y = rect.min.y;
-        let clip_max_x = rect.max.x;
-        let clip_max_y = rect.max.y;
-        let clip_min_x = clip_min_x.clamp(0.0, screen_size[0]);
-        let clip_min_y = clip_min_y.clamp(0.0, screen_size[1]);
-        let clip_max_x = clip_max_x.clamp(clip_min_x, screen_size[0]);
-        let clip_max_y = clip_max_y.clamp(clip_min_y, screen_size[1]);
+        let clip_min_x = extra_data.pixels_per_point * rect.min.x;
+        let clip_min_y = extra_data.pixels_per_point * rect.min.y;
+        let clip_max_x = extra_data.pixels_per_point * rect.max.x;
+        let clip_max_y = extra_data.pixels_per_point * rect.max.y;
+        let clip_min_x = clip_min_x.clamp(0.0, extra_data.screen_size_in_pixels.x);
+        let clip_min_y = clip_min_y.clamp(0.0, extra_data.screen_size_in_pixels.y);
+        let clip_max_x = clip_max_x.clamp(clip_min_x, extra_data.screen_size_in_pixels.x);
+        let clip_max_y = clip_max_y.clamp(clip_min_y, extra_data.screen_size_in_pixels.y);
         let clip_min_x = clip_min_x.round() as i32;
         let clip_min_y = clip_min_y.round() as i32;
         let clip_max_x = clip_max_x.round() as i32;
@@ -458,7 +474,7 @@ impl Drawable<ClippedPrimitiveDrawData<'_>, ()> for ClippedPrimitive {
         unsafe {
             gl::Scissor(
                 clip_min_x,
-                screen_size[1] as i32 - clip_max_y,
+                extra_data.screen_size_in_pixels.y as i32 - clip_max_y,
                 clip_max_x - clip_min_x,
                 clip_max_y - clip_min_y,
             );

@@ -25,7 +25,7 @@ vec4 linear_from_srgba(vec4 srgba) {
 
 void main()
 {
-  vec2 pos = vec2(in_pos.x / screen_size.x, 1.0 - in_pos.y / screen_size.y) * screen_size;
+  vec2 pos = vec2(in_pos.x / screen_size.x, 1.0 - in_pos.y / screen_size.y);
   gl_Position = projection * vec4(pos, -10.0, 1.0);
   finalColor = linear_from_srgba(in_color);
   v_uv = in_uv;
