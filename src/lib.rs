@@ -219,8 +219,6 @@ impl EguiBackend {
         let pixels_per_point = self.egui_ctx.pixels_per_point();
 
         self.shader.use_shader();
-        self.shader
-            .set_mat4("projection\0", &glm::ortho(0.0, 1.0, 0.0, 1.0, 0.1, 1000.0));
         let screen_size_in_points = glm::vec2(
             screen_size_in_pixels.0 / pixels_per_point,
             screen_size_in_pixels.1 / pixels_per_point,
