@@ -5,7 +5,7 @@ name = "egui_glfw"
 # * Dependency versions - currently supported versions
 #
 # * Usage - update with release version
-version = "0.6.0+dev"
+version = "0.6.1"
 authors = ["ishbosamiya <ishbosamiya@gmail.com>"]
 edition = "2018"
 
