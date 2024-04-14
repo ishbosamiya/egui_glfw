@@ -13,7 +13,11 @@ edition = "2018"
 
 [dependencies]
 egui = { version = "0.23" }
-glfw = "0.53"
+# dependent decides the version of `glfw`
+#
+# the expection is that `glfw` a fairly stable library, so any version
+# should work, see README.md for more details
+glfw = "0.*"
 gl = "0.14"
 nalgebra-glm = "0.18"
 
