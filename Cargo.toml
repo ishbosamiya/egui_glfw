@@ -1,5 +1,10 @@
 [package]
 name = "egui_glfw"
+# NOTE_FOR_RELEASE: update README.md
+#
+# * Dependency versions - currently supported versions
+#
+# * Usage - update with release version
 version = "0.6.0+dev"
 authors = ["ishbosamiya <ishbosamiya@gmail.com>"]
 edition = "2018"
