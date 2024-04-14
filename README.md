@@ -8,7 +8,7 @@ box, see examples for usage details.
 | Dependency | Supported version | Comments                                       |
 |:-----------|:------------------|------------------------------------------------|
 | egui       | 0.23              |                                                |
-| glfw       | 0.55              | See [glfw-version](#glfw-version) for details. |
+| glfw       | 0.55              | See [glfw version](#glfw-version) for details. |
 
 ## Usage
 
@@ -19,7 +19,7 @@ glfw = "0.55"
 
 ## glfw version
 
-[Dependency versions](#Dependency-versions) lists a known working
+[Dependency versions](#dependency-versions) lists a known working
 version of `glfw`. The listed version is expected to work but any
 other version is also likely to work.
 
