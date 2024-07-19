@@ -100,6 +100,8 @@ impl EguiBackend {
         // load opengl symbols
         gl::load_with(|symbol| window.get_proc_address(symbol));
 
+        let egui_ctx = egui::Context::default();
+
         // taking the x scale because egui supports only one value
         let pixels_per_point = window.get_content_scale().0;
         let mut input = Input::new(pixels_per_point);
@@ -116,7 +118,7 @@ impl EguiBackend {
         );
 
         Self {
-            egui_ctx: Default::default(),
+            egui_ctx,
             imm: GPUImmediate::new(),
             input,
             textures: AHashMap::new(),
@@ -205,15 +207,25 @@ impl EguiBackend {
                 }
             });
 
+        #[cfg(feature = "tracing")]
+        if full_output.viewport_output.len() > 1 {
+            tracing::error!("multiple viewports are not supported");
+        }
+
         let output = Output {
             platform_output: full_output.platform_output,
-            repaint_after: full_output.repaint_after,
+            repaint_after: full_output
+                .viewport_output
+                .into_values()
+                .map(|viewport_output| viewport_output.repaint_delay)
+                .next()
+                .unwrap_or_default(),
         };
         let shapes = full_output.shapes;
 
-        let meshes = self.egui_ctx.tessellate(shapes);
-
         let pixels_per_point = self.egui_ctx.pixels_per_point();
+
+        let meshes = self.egui_ctx.tessellate(shapes, pixels_per_point);
 
         self.shader.use_shader();
         let screen_size_in_points = glm::vec2(

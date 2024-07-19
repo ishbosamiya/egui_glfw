@@ -8,16 +8,19 @@ pub struct Input {
 impl Input {
     /// Create a new [`Input`] with the given pixels per point.
     pub fn new(pixels_per_point: f32) -> Self {
-        let raw_input = RawInput {
-            pixels_per_point: Some(pixels_per_point),
-            ..Default::default()
-        };
+        let mut raw_input = RawInput::default();
+        raw_input
+            .viewports
+            .values_mut()
+            .for_each(|viewport| viewport.native_pixels_per_point = Some(pixels_per_point));
         Self { raw_input }
     }
 
     /// Set the pixels per point.
     pub fn set_pixels_per_point(&mut self, pixels_per_point: f32) {
-        self.raw_input.pixels_per_point = Some(pixels_per_point);
+        self.raw_input.viewports.values_mut().for_each(|viewport| {
+            viewport.native_pixels_per_point = Some(pixels_per_point);
+        });
     }
 
     /// Refer to egui's RawInput for details on take
