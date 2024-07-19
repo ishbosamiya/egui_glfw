@@ -68,9 +68,50 @@ impl Input {
         )
     }
 
-    #[inline]
+    /// Get the corresponding [`egui::Key`] for the [`glfw::Key`].
     fn get_key(key: &glfw::Key) -> Option<egui::Key> {
         Some(match key {
+            glfw::Key::Down => egui::Key::ArrowDown,
+            glfw::Key::Left => egui::Key::ArrowLeft,
+            glfw::Key::Right => egui::Key::ArrowRight,
+            glfw::Key::Up => egui::Key::ArrowUp,
+
+            glfw::Key::Escape => egui::Key::Escape,
+            glfw::Key::Tab => egui::Key::Tab,
+            glfw::Key::Backspace => egui::Key::Backspace,
+            glfw::Key::Enter => egui::Key::Enter,
+            glfw::Key::Space => egui::Key::Space,
+
+            glfw::Key::Insert => egui::Key::Insert,
+            glfw::Key::Delete => egui::Key::Delete,
+            glfw::Key::Home => egui::Key::Home,
+            glfw::Key::End => egui::Key::End,
+            glfw::Key::PageUp => egui::Key::PageUp,
+            glfw::Key::PageDown => egui::Key::PageDown,
+
+            // egui::Key::Colon,
+            glfw::Key::Comma => egui::Key::Comma,
+            glfw::Key::Backslash => egui::Key::Backslash,
+            glfw::Key::LeftBracket => egui::Key::OpenBracket,
+            glfw::Key::RightBracket => egui::Key::CloseBracket,
+            // egui::Key::Backtick,
+            glfw::Key::Minus => egui::Key::Minus,
+            glfw::Key::Period => egui::Key::Period,
+            // egui::Key::Plus,
+            glfw::Key::Equal => egui::Key::Equals,
+            glfw::Key::Semicolon => egui::Key::Semicolon,
+
+            glfw::Key::Num0 => egui::Key::Num0,
+            glfw::Key::Num1 => egui::Key::Num1,
+            glfw::Key::Num2 => egui::Key::Num2,
+            glfw::Key::Num3 => egui::Key::Num3,
+            glfw::Key::Num4 => egui::Key::Num4,
+            glfw::Key::Num5 => egui::Key::Num5,
+            glfw::Key::Num6 => egui::Key::Num6,
+            glfw::Key::Num7 => egui::Key::Num7,
+            glfw::Key::Num8 => egui::Key::Num8,
+            glfw::Key::Num9 => egui::Key::Num9,
+
             glfw::Key::A => egui::Key::A,
             glfw::Key::B => egui::Key::B,
             glfw::Key::C => egui::Key::C,
@@ -98,34 +139,37 @@ impl Input {
             glfw::Key::Y => egui::Key::Y,
             glfw::Key::Z => egui::Key::Z,
 
-            glfw::Key::Down => egui::Key::ArrowDown,
-            glfw::Key::Left => egui::Key::ArrowLeft,
-            glfw::Key::Right => egui::Key::ArrowRight,
-            glfw::Key::Up => egui::Key::ArrowUp,
-            glfw::Key::Escape => egui::Key::Escape,
-            glfw::Key::Tab => egui::Key::Tab,
-            glfw::Key::Backspace => egui::Key::Backspace,
-            glfw::Key::Enter => egui::Key::Enter,
-            glfw::Key::Space => egui::Key::Space,
-            glfw::Key::Insert => egui::Key::Insert,
-            glfw::Key::Delete => egui::Key::Delete,
-            glfw::Key::Home => egui::Key::Home,
-            glfw::Key::End => egui::Key::End,
-            glfw::Key::PageUp => egui::Key::PageUp,
-            glfw::Key::PageDown => egui::Key::PageDown,
-            glfw::Key::Num0 => egui::Key::Num0,
-            glfw::Key::Num1 => egui::Key::Num1,
-            glfw::Key::Num2 => egui::Key::Num2,
-            glfw::Key::Num3 => egui::Key::Num3,
-            glfw::Key::Num4 => egui::Key::Num4,
-            glfw::Key::Num5 => egui::Key::Num5,
-            glfw::Key::Num6 => egui::Key::Num6,
-            glfw::Key::Num7 => egui::Key::Num7,
-            glfw::Key::Num8 => egui::Key::Num8,
-            glfw::Key::Num9 => egui::Key::Num9,
+            glfw::Key::F1 => egui::Key::F1,
+            glfw::Key::F2 => egui::Key::F2,
+            glfw::Key::F3 => egui::Key::F3,
+            glfw::Key::F4 => egui::Key::F4,
+            glfw::Key::F5 => egui::Key::F5,
+            glfw::Key::F6 => egui::Key::F6,
+            glfw::Key::F7 => egui::Key::F7,
+            glfw::Key::F8 => egui::Key::F8,
+            glfw::Key::F9 => egui::Key::F9,
+            glfw::Key::F10 => egui::Key::F10,
+            glfw::Key::F11 => egui::Key::F11,
+            glfw::Key::F12 => egui::Key::F12,
+            glfw::Key::F13 => egui::Key::F13,
+            glfw::Key::F14 => egui::Key::F14,
+            glfw::Key::F15 => egui::Key::F15,
+            glfw::Key::F16 => egui::Key::F16,
+            glfw::Key::F17 => egui::Key::F17,
+            glfw::Key::F18 => egui::Key::F18,
+            glfw::Key::F19 => egui::Key::F19,
+            glfw::Key::F20 => egui::Key::F20,
 
             _ => return None,
         })
+    }
+
+    /// Get the corresponding physical [`egui::Key`] for the
+    /// [`glfw::Scancode`].
+    fn get_physical_key(_scan_code: &glfw::Scancode) -> Option<egui::Key> {
+        // TODO: need to figure out what scancode correspondings to
+        // what key
+        None
     }
 
     pub fn handle_event(
@@ -154,7 +198,7 @@ impl Input {
                     None => None,
                 }
             }
-            glfw::WindowEvent::Key(key, _scancode, action, modifiers) => {
+            glfw::WindowEvent::Key(key, scancode, action, modifiers) => {
                 let pressed = Self::is_pressed(action);
                 match key {
                     Key::LeftShift | Key::RightShift => self.raw_input.modifiers.shift = pressed,
@@ -167,6 +211,7 @@ impl Input {
                 }
                 Self::get_key(key).map(|key| Event::Key {
                     key,
+                    physical_key: Self::get_physical_key(scancode),
                     pressed,
                     repeat: false,
                     modifiers: Self::get_modifier(modifiers),
