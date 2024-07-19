@@ -89,9 +89,16 @@ impl Input {
             glfw::Key::PageUp => egui::Key::PageUp,
             glfw::Key::PageDown => egui::Key::PageDown,
 
+            // egui::Key::Copy,
+            // egui::Key::Cut,
+            // egui::Key::Paste,
+
             // egui::Key::Colon,
             glfw::Key::Comma => egui::Key::Comma,
             glfw::Key::Backslash => egui::Key::Backslash,
+            glfw::Key::Slash => egui::Key::Slash,
+            // egui::Key::Pipe
+            // egui::Key::Questionmark,
             glfw::Key::LeftBracket => egui::Key::OpenBracket,
             glfw::Key::RightBracket => egui::Key::CloseBracket,
             // egui::Key::Backtick,
