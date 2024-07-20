@@ -166,7 +166,21 @@ impl Input {
             glfw::Key::F18 => egui::Key::F18,
             glfw::Key::F19 => egui::Key::F19,
             glfw::Key::F20 => egui::Key::F20,
-
+            glfw::Key::F21 => egui::Key::F21,
+            glfw::Key::F22 => egui::Key::F22,
+            glfw::Key::F23 => egui::Key::F23,
+            glfw::Key::F24 => egui::Key::F24,
+            glfw::Key::F25 => egui::Key::F25,
+            // egui::Key::F26,
+            // egui::Key::F27,
+            // egui::Key::F28,
+            // egui::Key::F29,
+            // egui::Key::F30,
+            // egui::Key::F31,
+            // egui::Key::F32,
+            // egui::Key::F33,
+            // egui::Key::F34,
+            // egui::Key::F35,
             _ => return None,
         })
     }
