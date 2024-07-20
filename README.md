@@ -7,13 +7,13 @@ box, see examples for usage details.
 ## Dependency versions
 | Dependency | Supported version | Comments                                       |
 |:-----------|:------------------|------------------------------------------------|
-| egui       | 0.23              |                                                |
+| egui       | 0.28              |                                                |
 | glfw       | 0.55              | See [glfw version](#glfw-version) for details. |
 
 ## Usage
 
 ``` toml
-egui_glfw = { version = "0.6.1", git = "https://github.com/ishbosamiya/egui_glfw.git", branch = "v0.6.1-release" }
+egui_glfw = { version = "0.7.0", git = "https://github.com/ishbosamiya/egui_glfw.git", branch = "v0.7.0-release" }
 glfw = "0.55"
 ```
 
