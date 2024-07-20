@@ -239,16 +239,12 @@ impl Input {
                 })
             }
             glfw::WindowEvent::Scroll(x, y) => {
-                let multiplier = 50.0;
-                let scroll = multiplier * egui::vec2(*x as _, *y as _);
-                if Self::is_pressed(&window.get_key(glfw::Key::LeftControl))
-                    || Self::is_pressed(&window.get_key(glfw::Key::RightControl))
-                {
-                    let factor = (scroll.y / 200.0).exp();
-                    Some(Event::Zoom(factor as _))
-                } else {
-                    Some(Event::Scroll(scroll))
-                }
+                let delta = egui::vec2(*x as _, *y as _);
+                Some(Event::MouseWheel {
+                    unit: egui::MouseWheelUnit::Line,
+                    delta,
+                    modifiers: self.raw_input.modifiers,
+                })
             }
             glfw::WindowEvent::FramebufferSize(width, height) => {
                 unsafe {
