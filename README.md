@@ -13,6 +13,6 @@ box, see examples for usage details.
 ## Usage
 
 ``` toml
-egui_glfw = { version = "0.7.0", git = "https://github.com/ishbosamiya/egui_glfw.git", branch = "v0.7.0-release" }
+egui_glfw = { version = "0.7.1", git = "https://github.com/ishbosamiya/egui_glfw.git", branch = "v0.7.1-release" }
 glfw = "0.58"
 ```
