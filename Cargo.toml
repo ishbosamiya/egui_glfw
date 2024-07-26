@@ -2,7 +2,7 @@
 name = "egui_glfw"
 # NOTE_FOR_RELEASE: update README.md
 #
-# * Dependency versions - currently supported versions
+# * Dependency versions - update supported version
 #
 # * Usage - update with release version
 version = "0.7.0+dev"
@@ -13,9 +13,7 @@ edition = "2018"
 
 [dependencies]
 egui = { version = "0.28" }
-# dependent decides the version of `glfw`, see README.md for more
-# details
-glfw = "0.*"
+glfw = "0.58"
 gl = "0.14"
 nalgebra-glm = "0.18"
 tracing = { version = "0.1", optional = true }
