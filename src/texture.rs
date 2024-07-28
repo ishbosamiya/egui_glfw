@@ -288,3 +288,18 @@ impl Drop for TextureRGBA8 {
         }
     }
 }
+
+/// Extention to [`egui::TextureFilter`].
+pub trait EguiTextureFilterExtend {
+    /// Convert to equivalent texture filter parameter to OpenGL.
+    fn to_gl(&self) -> gl::types::GLenum;
+}
+
+impl EguiTextureFilterExtend for egui::TextureFilter {
+    fn to_gl(&self) -> gl::types::GLenum {
+        match self {
+            egui::TextureFilter::Nearest => gl::NEAREST,
+            egui::TextureFilter::Linear => gl::LINEAR,
+        }
+    }
+}
