@@ -303,3 +303,19 @@ impl EguiTextureFilterExtend for egui::TextureFilter {
         }
     }
 }
+
+/// Extention to [`egui::TextureWrapMode`].
+pub trait EguiTextureWrapModeExtend {
+    /// Convert to equivalent texture wrap mode to OpenGL.
+    fn to_gl(&self) -> gl::types::GLenum;
+}
+
+impl EguiTextureWrapModeExtend for egui::TextureWrapMode {
+    fn to_gl(&self) -> gl::types::GLenum {
+        match self {
+            egui::TextureWrapMode::ClampToEdge => gl::CLAMP_TO_EDGE,
+            egui::TextureWrapMode::Repeat => gl::REPEAT,
+            egui::TextureWrapMode::MirroredRepeat => gl::MIRRORED_REPEAT,
+        }
+    }
+}
