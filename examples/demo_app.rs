@@ -32,8 +32,14 @@ impl Application {
     /// Create the UI for the [`Application`].
     pub fn ui(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         match self.sub_application_selection {
-            SubApplicationSelection::Demo => self.demo_windows.ui(ui.ctx()),
-            SubApplicationSelection::ColorTest => self.color_test.ui(ui),
+            SubApplicationSelection::Demo => {
+                self.demo_windows.ui(ui.ctx());
+            }
+            SubApplicationSelection::ColorTest => {
+                egui::ScrollArea::both().auto_shrink(false).show(ui, |ui| {
+                    self.color_test.ui(ui);
+                });
+            }
         }
 
         egui::Window::new("Inspection")
@@ -59,6 +65,12 @@ impl Application {
                     self.sub_application_selection = *sub_app_selection;
                 }
             });
+    }
+}
+
+impl Default for Application {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -129,10 +141,7 @@ fn main() {
 
     egui_extras::install_image_loaders(egui.get_egui_ctx());
 
-    let mut inspection_window = true;
-    let mut demo_windows = egui_demo_lib::DemoWindows::default();
-    let mut color_test = egui_demo_lib::ColorTest::default();
-    let mut color_test_window_open = false;
+    let mut app = Application::default();
 
     unsafe {
         gl::ClearColor(0.1, 0.3, 0.2, 1.0);
@@ -188,20 +197,21 @@ fn main() {
 
         egui.begin_frame(&window, &mut glfw);
 
-        demo_windows.ui(egui.get_egui_ctx());
+        egui::TopBottomPanel::top(egui::Id::new("top_panel")).show(egui.get_egui_ctx(), |ui| {
+            ui.horizontal(|ui| {
+                ui.menu_button("Edit", |ui| {
+                    ui.menu_button("Windows", |ui| {
+                        ui.checkbox(&mut app.is_inspection_window_open, "Inspection");
+                    });
+                });
 
-        egui::Window::new("window")
-            .open(&mut inspection_window)
-            .vscroll(true)
-            .show(egui.get_egui_ctx(), |ui| {
-                egui.get_egui_ctx().inspection_ui(ui);
+                app.ui_app_selection(ui, egui::Id::new("top_panel").with("app_selection"));
             });
+        });
 
-        egui::Window::new("Color Test")
-            .open(&mut color_test_window_open)
-            .show(egui.get_egui_ctx(), |ui| {
-                color_test.ui(ui);
-            });
+        egui::CentralPanel::default().show(egui.get_egui_ctx(), |ui| {
+            app.ui(ui, egui::Id::new("central_panel").with("app"));
+        });
 
         let (width, height) = window.get_framebuffer_size();
         let output = egui.end_frame((width as _, height as _));
