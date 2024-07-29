@@ -13,6 +13,9 @@ pub struct Application {
 
     /// [`SubApplicationSelection`].
     pub sub_application_selection: SubApplicationSelection,
+
+    /// Is inspection window open?
+    pub is_inspection_window_open: bool,
 }
 
 impl Application {
@@ -22,7 +25,23 @@ impl Application {
             demo_windows: DemoWindows::default(),
             color_test: ColorTest::default(),
             sub_application_selection: SubApplicationSelection::Demo,
+            is_inspection_window_open: true,
         }
+    }
+
+    /// Create the UI for the [`Application`].
+    pub fn ui(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.sub_application_selection {
+            SubApplicationSelection::Demo => self.demo_windows.ui(ui.ctx()),
+            SubApplicationSelection::ColorTest => self.color_test.ui(ui),
+        }
+
+        egui::Window::new("Inspection")
+            .open(&mut self.is_inspection_window_open)
+            .scroll([true, true])
+            .show(ui.ctx(), |ui| {
+                ui.ctx().clone().inspection_ui(ui);
+            });
     }
 }
 
