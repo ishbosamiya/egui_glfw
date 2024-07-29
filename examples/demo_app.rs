@@ -1,6 +1,30 @@
+use egui_demo_lib::{ColorTest, DemoWindows};
 use glfw::{self, Context};
 
 use egui_glfw::{egui, EguiBackend};
+
+/// Application.
+pub struct Application {
+    /// [`DemoWindows`].
+    pub demo_windows: DemoWindows,
+
+    /// [`ColorTest`].
+    pub color_test: ColorTest,
+
+    /// [`SubApplicationSelection`].
+    pub sub_application_selection: SubApplicationSelection,
+}
+
+impl Application {
+    /// Create a new [`Application`].
+    pub fn new() -> Self {
+        Self {
+            demo_windows: DemoWindows::default(),
+            color_test: ColorTest::default(),
+            sub_application_selection: SubApplicationSelection::Demo,
+        }
+    }
+}
 
 /// Sub application selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
