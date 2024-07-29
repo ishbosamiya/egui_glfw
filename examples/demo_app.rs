@@ -2,6 +2,29 @@ use glfw::{self, Context};
 
 use egui_glfw::{egui, EguiBackend};
 
+/// Sub application selection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SubApplicationSelection {
+    Demo,
+    ColorTest,
+}
+
+impl SubApplicationSelection {
+    /// Get all the [`SubApplicationSelection`]s.
+    pub const fn all() -> [Self; 2] {
+        [Self::Demo, Self::ColorTest]
+    }
+}
+
+impl std::fmt::Display for SubApplicationSelection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SubApplicationSelection::Demo => write!(f, "Demo"),
+            SubApplicationSelection::ColorTest => write!(f, "Color test"),
+        }
+    }
+}
+
 fn main() {
     let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
 
