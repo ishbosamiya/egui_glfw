@@ -2,12 +2,20 @@ use std::{borrow::Cow, convert::TryInto};
 
 /// GPU Texture RGBA8. Each pixel has 4 channels, [`u8`] each.
 pub struct TextureRGBA8 {
+    /// Width of the texture.
     width: usize,
+    /// Height of the texture.
     height: usize,
 
-    /// pixels of the image stored from bottom left row wise
+    /// Pixels of the image stored from bottom left row wise.
     pixels: Vec<(u8, u8, u8, u8)>,
 
+    /// [`egui::TextureOptions`] for the current texture.
+    texture_options: egui::TextureOptions,
+
+    /// OpenGL texture ID.
+    ///
+    /// If [`None`] if the texture is not yet uploaded to the GPU.
     gl_tex: Option<gl::types::GLuint>,
 }
 
@@ -15,13 +23,19 @@ impl TextureRGBA8 {
     /// Create a [`TextureRGBA8`] from pixels. The pixels provided
     /// must follow the pixel memory layout mapping of bottom left
     /// left to right rows.
-    pub fn from_pixels(width: usize, height: usize, pixels: Vec<(u8, u8, u8, u8)>) -> Self {
+    pub fn from_pixels(
+        width: usize,
+        height: usize,
+        pixels: Vec<(u8, u8, u8, u8)>,
+        texture_options: egui::TextureOptions,
+    ) -> Self {
         assert_eq!(pixels.len(), width * height);
         Self {
             width,
             height,
             pixels,
             gl_tex: None,
+            texture_options,
         }
     }
 
@@ -62,6 +76,7 @@ impl TextureRGBA8 {
                     .flat_map(|row| row.iter().copied())
                     .collect(),
             },
+            texture_options: delta.options,
             gl_tex: None,
         })
     }
@@ -76,7 +91,11 @@ impl TextureRGBA8 {
 
         // TODO: need to optimize this, shouldn't delete the entire
         // texture from the GPU and resend everything. It does not
-        // take advantage of the delta that is provided.
+        // take advantage of the delta that is provided. Make sure
+        // `self.texture_options` match the delta's
+        // [`egui::TextureOptions`]. For the texture options, it might
+        // make sense to use a texture sampler instead of assigning
+        // the sampler options to the texture itself.
 
         // delete the entire texture from the GPU if it was previously
         // uploaded
@@ -130,7 +149,7 @@ impl TextureRGBA8 {
     pub unsafe fn send_to_gpu(&mut self) {
         assert!(self.gl_tex.is_none());
 
-        self.gl_tex = Some(Self::gen_gl_texture());
+        self.gl_tex = Some(Self::gen_gl_texture(&self.texture_options));
 
         self.new_texture_to_gl();
     }
@@ -218,7 +237,7 @@ impl TextureRGBA8 {
         }
     }
 
-    fn gen_gl_texture() -> gl::types::GLuint {
+    fn gen_gl_texture(texture_options: &egui::TextureOptions) -> gl::types::GLuint {
         let mut gl_tex = 0;
         unsafe {
             gl::GenTextures(1, &mut gl_tex);
@@ -232,24 +251,30 @@ impl TextureRGBA8 {
             gl::TexParameteri(
                 gl::TEXTURE_2D,
                 gl::TEXTURE_WRAP_S,
-                gl::CLAMP_TO_EDGE.try_into().unwrap(),
+                texture_options.wrap_mode.to_gl().try_into().unwrap(),
             );
             gl::TexParameteri(
                 gl::TEXTURE_2D,
                 gl::TEXTURE_WRAP_T,
-                gl::CLAMP_TO_EDGE.try_into().unwrap(),
+                texture_options.wrap_mode.to_gl().try_into().unwrap(),
             );
 
             // filter method
             gl::TexParameteri(
                 gl::TEXTURE_2D,
                 gl::TEXTURE_MIN_FILTER,
-                gl::NEAREST.try_into().unwrap(),
+                texture_options.minification.to_gl().try_into().unwrap(),
+                // TODO: need to figure out why the egui font book
+                // texture is sampled with `gl::LINEAR` when using
+                // `gl::NEAREST` makes the text less blurry
+                //
+                // gl::NEAREST.try_into().unwrap(),
             );
             gl::TexParameteri(
                 gl::TEXTURE_2D,
                 gl::TEXTURE_MAG_FILTER,
-                gl::NEAREST.try_into().unwrap(),
+                texture_options.magnification.to_gl().try_into().unwrap(),
+                // gl::NEAREST.try_into().unwrap(),
             );
         }
 

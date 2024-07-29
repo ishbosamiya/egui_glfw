@@ -291,6 +291,7 @@ fn generate_texture(
                 )
             })
             .collect(),
+        egui::TextureOptions::NEAREST,
     )
 }
 
