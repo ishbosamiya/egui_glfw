@@ -43,6 +43,23 @@ impl Application {
                 ui.ctx().clone().inspection_ui(ui);
             });
     }
+
+    /// Create the UI for the [`Application`] selection.
+    pub fn ui_app_selection(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        SubApplicationSelection::all()
+            .iter()
+            .for_each(|sub_app_selection| {
+                if ui
+                    .selectable_label(
+                        *sub_app_selection == self.sub_application_selection,
+                        sub_app_selection.to_string(),
+                    )
+                    .clicked()
+                {
+                    self.sub_application_selection = *sub_app_selection;
+                }
+            });
+    }
 }
 
 /// Sub application selection.
@@ -54,8 +71,8 @@ pub enum SubApplicationSelection {
 
 impl SubApplicationSelection {
     /// Get all the [`SubApplicationSelection`]s.
-    pub const fn all() -> [Self; 2] {
-        [Self::Demo, Self::ColorTest]
+    pub const fn all() -> &'static [Self] {
+        &[Self::Demo, Self::ColorTest]
     }
 }
 
