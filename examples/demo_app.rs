@@ -106,7 +106,7 @@ fn main() {
         glfw::OpenGlProfileHint::Core,
     ));
     // if msaa is available, use it
-    glfw.window_hint(glfw::WindowHint::Samples(Some(16)));
+    glfw.window_hint(glfw::WindowHint::Samples(Some(4)));
     glfw.window_hint(glfw::WindowHint::ScaleToMonitor(true));
     #[cfg(target_os = "macos")]
     glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));

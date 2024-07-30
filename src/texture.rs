@@ -264,17 +264,11 @@ impl TextureRGBA8 {
                 gl::TEXTURE_2D,
                 gl::TEXTURE_MIN_FILTER,
                 texture_options.minification.to_gl().try_into().unwrap(),
-                // TODO: need to figure out why the egui font book
-                // texture is sampled with `gl::LINEAR` when using
-                // `gl::NEAREST` makes the text less blurry
-                //
-                // gl::NEAREST.try_into().unwrap(),
             );
             gl::TexParameteri(
                 gl::TEXTURE_2D,
                 gl::TEXTURE_MAG_FILTER,
                 texture_options.magnification.to_gl().try_into().unwrap(),
-                // gl::NEAREST.try_into().unwrap(),
             );
         }
 
