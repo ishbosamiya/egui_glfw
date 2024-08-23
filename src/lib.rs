@@ -131,11 +131,15 @@ impl EguiBackend {
     /// to work.
     pub fn begin_frame(&mut self, _window: &glfw::Window, _glfw: &mut glfw::Glfw) {
         let time = self.start_time.elapsed().as_secs_f64();
+        // SAFETY: updating raw_input in a safe manner
+        let raw_input = unsafe { self.get_raw_input() };
+        let mut max_texture_size = 0;
+        // SAFETY: getting max texture size safely
         unsafe {
-            let raw_input = self.get_raw_input();
-            raw_input.max_texture_side = Some(gl::MAX_TEXTURE_SIZE.try_into().unwrap());
-            raw_input.time = Some(time);
+            gl::GetIntegerv(gl::MAX_TEXTURE_SIZE, &mut max_texture_size);
         }
+        raw_input.max_texture_side = Some(max_texture_size.try_into().unwrap());
+        raw_input.time = Some(time);
         self.egui_ctx.begin_frame(self.input.take());
     }
 
