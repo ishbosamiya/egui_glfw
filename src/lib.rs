@@ -129,7 +129,7 @@ impl EguiBackend {
 
     /// Start the egui frame. This sets up the necessary data for egui
     /// to work.
-    pub fn begin_frame(&mut self, _window: &glfw::Window, _glfw: &mut glfw::Glfw) {
+    pub fn begin_pass(&mut self, _window: &glfw::Window, _glfw: &mut glfw::Glfw) {
         let time = self.start_time.elapsed().as_secs_f64();
         // SAFETY: updating raw_input in a safe manner
         let raw_input = unsafe { self.get_raw_input() };
@@ -140,7 +140,13 @@ impl EguiBackend {
         }
         raw_input.max_texture_side = Some(max_texture_size.try_into().unwrap());
         raw_input.time = Some(time);
-        self.egui_ctx.begin_frame(self.input.take());
+        self.egui_ctx.begin_pass(self.input.take());
+    }
+
+    /// See [`Self::begin_pass()`].
+    #[deprecated = "Renamed to `EguiBackend::begin_pass()`."]
+    pub fn begin_frame(&mut self, window: &glfw::Window, glfw: &mut glfw::Glfw) {
+        self.begin_pass(window, glfw);
     }
 
     /// End the egui frame. This processes the GUI to render it to the
@@ -178,8 +184,8 @@ impl EguiBackend {
     ///     }
     /// }
     /// ```
-    pub fn end_frame(&mut self, screen_size_in_pixels: (f32, f32)) -> Output {
-        let full_output = self.egui_ctx.end_frame();
+    pub fn end_pass(&mut self, screen_size_in_pixels: (f32, f32)) -> Output {
+        let full_output = self.egui_ctx.end_pass();
 
         // TODO: need to handle full_output.textures_delta
         //
@@ -245,6 +251,12 @@ impl EguiBackend {
         );
 
         output
+    }
+
+    /// See [`Self::end_pass()`].
+    #[deprecated = "Renamed to `EguiBackend::end_pass()`."]
+    pub fn end_frame(&mut self, screen_size_in_pixels: (f32, f32)) -> Output {
+        self.end_pass(screen_size_in_pixels)
     }
 
     /// Draw the gui by processing the provided `meshes`.

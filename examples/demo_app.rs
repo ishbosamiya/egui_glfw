@@ -195,7 +195,7 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
-        egui.begin_frame(&window, &mut glfw);
+        egui.begin_pass(&window, &mut glfw);
 
         egui::TopBottomPanel::top(egui::Id::new("top_panel")).show(egui.get_egui_ctx(), |ui| {
             ui.horizontal(|ui| {
@@ -214,7 +214,7 @@ fn main() {
         });
 
         let (width, height) = window.get_framebuffer_size();
-        let output = egui.end_frame((width as _, height as _));
+        let output = egui.end_pass((width as _, height as _));
 
         if !output.platform_output.copied_text.is_empty() {
             match copypasta_ext::try_context() {
