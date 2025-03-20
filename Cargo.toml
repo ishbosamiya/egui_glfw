@@ -13,7 +13,7 @@ edition = "2018"
 
 [dependencies]
 egui = { version = "0.29" }
-glfw = "0.58"
+glfw = "0.59"
 gl = "0.14"
 nalgebra-glm = "0.18"
 tracing = { version = "0.1", optional = true }
