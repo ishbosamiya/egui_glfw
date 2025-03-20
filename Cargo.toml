@@ -12,7 +12,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-egui = { version = "0.30" }
+egui = { version = "0.31" }
 glfw = "0.59"
 gl = "0.14"
 nalgebra-glm = "0.18"
@@ -20,8 +20,8 @@ tracing = { version = "0.1", optional = true }
 
 [dev-dependencies]
 copypasta-ext = "0.4"
-egui_demo_lib = "0.30"
-egui_extras = { version = "0.30", features = ["all_loaders"] }
+egui_demo_lib = "0.31"
+egui_extras = { version = "0.31", features = ["all_loaders"] }
 image = { version = "0.24", features = ["jpeg", "png"] }
 
 [features]

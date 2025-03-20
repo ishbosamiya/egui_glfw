@@ -216,16 +216,20 @@ fn main() {
         let (width, height) = window.get_framebuffer_size();
         let output = egui.end_pass((width as _, height as _));
 
-        if !output.platform_output.copied_text.is_empty() {
-            match copypasta_ext::try_context() {
-                Some(mut context) => context
-                    .set_contents(output.platform_output.copied_text)
-                    .unwrap(),
+        output
+            .platform_output
+            .commands
+            .into_iter()
+            .filter_map(|output| match output {
+                egui::OutputCommand::CopyText(text) => Some(text),
+                egui::OutputCommand::CopyImage(_) | egui::OutputCommand::OpenUrl(_) => None,
+            })
+            .for_each(|text| match copypasta_ext::try_context() {
+                Some(mut context) => context.set_contents(text).unwrap(),
                 None => {
                     eprintln!("enable to gather context for clipboard");
                 }
-            }
-        }
+            });
 
         window.swap_buffers();
     }

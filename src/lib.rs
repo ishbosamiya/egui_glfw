@@ -143,12 +143,6 @@ impl EguiBackend {
         self.egui_ctx.begin_pass(self.input.take());
     }
 
-    /// See [`Self::begin_pass()`].
-    #[deprecated = "Renamed to `EguiBackend::begin_pass()`."]
-    pub fn begin_frame(&mut self, window: &glfw::Window, glfw: &mut glfw::Glfw) {
-        self.begin_pass(window, glfw);
-    }
-
     /// End the egui frame. This processes the GUI to render it to the
     /// screen.
     ///
@@ -171,18 +165,22 @@ impl EguiBackend {
     /// clipboard using the crate `copypasta_ext`.
     ///
     /// ```no_run
-    /// let output = egui.end_frame((width as _, height as _));
+    /// let output = egui.end_pass((width as _, height as _));
     ///
-    /// if !output.platform_output.copied_text.is_empty() {
-    ///     match copypasta_ext::try_context() {
-    ///         Some(mut context) => context
-    ///             .set_contents(output.platform_output.copied_text)
-    ///             .unwrap(),
+    /// output
+    ///     .platform_output
+    ///     .commands
+    ///     .into_iter()
+    ///     .filter_map(|output| match output {
+    ///         egui::OutputCommand::CopyText(text) => Some(text),
+    ///         egui::OutputCommand::CopyImage(_) | egui::OutputCommand::OpenUrl(_) => None,
+    ///     })
+    ///     .for_each(|text| match copypasta_ext::try_context() {
+    ///         Some(mut context) => context.set_contents(text).unwrap(),
     ///         None => {
     ///             eprintln!("enable to gather context for clipboard");
     ///         }
-    ///     }
-    /// }
+    ///     });
     /// ```
     pub fn end_pass(&mut self, screen_size_in_pixels: (f32, f32)) -> Output {
         let full_output = self.egui_ctx.end_pass();
@@ -251,12 +249,6 @@ impl EguiBackend {
         );
 
         output
-    }
-
-    /// See [`Self::end_pass()`].
-    #[deprecated = "Renamed to `EguiBackend::end_pass()`."]
-    pub fn end_frame(&mut self, screen_size_in_pixels: (f32, f32)) -> Output {
-        self.end_pass(screen_size_in_pixels)
     }
 
     /// Draw the gui by processing the provided `meshes`.
@@ -350,7 +342,7 @@ impl EguiBackend {
     ///
     /// Note that for [`egui::Event::Cut`] and [`egui::Event::Copy`],
     /// it is important support handle the output so that the copied
-    /// text is copied to the clipboard. See [`Self::end_frame()`] for
+    /// text is copied to the clipboard. See [`Self::end_pass()`] for
     /// more details.
     pub fn push_event(&mut self, event: egui::Event) {
         self.input.push_event(event);
@@ -555,7 +547,7 @@ impl Drawable<ClippedPrimitiveDrawData<'_>, ()> for ClippedPrimitive {
     }
 }
 
-/// Output of [`EguiBackend::end_frame()`].
+/// Output of [`EguiBackend::end_pass()`].
 pub struct Output {
     /// egui's [`PlatformOutput`].
     pub platform_output: PlatformOutput,
